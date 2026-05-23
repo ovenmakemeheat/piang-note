@@ -37,3 +37,15 @@ This keeps the writing portable while preserving the graph structure needed for 
 ### Markdown support
 
 Headings, subheadings, lists, links, blockquotes, tables, images, inline code, and code blocks are rendered by the note page.
+
+#### Deep topic
+
+Nested headings also appear in the topic tree.
+
+##### Deeper topic
+
+This level stays collapsed unless its parent branch is active or manually opened.
+
+###### Smallest topic
+
+All markdown heading levels from `#` through `######` are supported.

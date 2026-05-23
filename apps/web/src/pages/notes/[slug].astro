@@ -11,7 +11,13 @@ if (!note) {
 
 const backlinks = await getBacklinks(note._id);
 const Content = note.Content;
-const topics = note.topics.filter((topic) => topic.depth <= 4);
+const topics = note.topics;
+const topicsWithChildren = topics.map((topic, index) => ({
+	...topic,
+	hasChildren: topics
+		.slice(index + 1)
+		.some((candidate) => candidate.depth > topic.depth),
+}));
 const date = note.publishedAt
 	? new Intl.DateTimeFormat("en", {
 			day: "2-digit",
@@ -35,34 +41,70 @@ const date = note.publishedAt
 				{
 					topics.length > 0 && (
 						<ol class="m-0 grid list-none gap-1 p-0 text-sm">
-							{topics.map((topic) => (
-								<li>
-									<a
-										href={`#${topic.id}`}
-										data-topic-link={topic.id}
+							{topicsWithChildren.map((topic) => (
+								<li
+									data-topic-item={topic.id}
+									data-topic-depth={topic.depth}
+									class="overflow-hidden transition-[opacity,max-height,transform] duration-200 ease-out motion-reduce:transition-none"
+								>
+									<div
 										class:list={[
-											"group flex items-start gap-2 border border-transparent px-2.5 py-2 text-muted no-underline transition-colors hover:bg-soft/60 hover:text-accent-ink",
-											topic.depth === 1 && "pl-2.5",
-											topic.depth === 2 && "pl-5",
-											topic.depth === 3 && "pl-8 text-[0.82rem]",
-											topic.depth >= 4 && "pl-11 text-[0.78rem]",
+											"group flex items-stretch border border-transparent text-muted transition-[background-color,border-color,color,transform] duration-150 ease-out hover:translate-x-0.5 hover:bg-soft/60 hover:text-accent-ink motion-reduce:transition-none motion-reduce:hover:translate-x-0",
+											topic.depth === 1 && "pl-1",
+											topic.depth === 2 && "pl-4",
+											topic.depth === 3 && "pl-7 text-[0.82rem]",
+											topic.depth === 4 && "pl-10 text-[0.78rem]",
+											topic.depth === 5 && "pl-13 text-[0.76rem]",
+											topic.depth >= 6 && "pl-16 text-[0.74rem]",
 										]}
 									>
-										<svg
-											data-topic-icon
-											aria-hidden="true"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											class="mt-[0.18rem] size-3.5 shrink-0 opacity-0 transition-opacity"
+										<a
+											href={`#${topic.id}`}
+											data-topic-link={topic.id}
+											data-topic-depth={topic.depth}
+											class="flex min-w-0 flex-1 items-start gap-2 px-1.5 py-2 text-inherit no-underline"
 										>
-											<path d="m9 18 6-6-6-6"></path>
-										</svg>
-										<span class="min-w-0 leading-snug">{topic.text}</span>
-									</a>
+											<svg
+												data-topic-icon
+												aria-hidden="true"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+											class="mt-[0.18rem] size-3.5 shrink-0 opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:translate-x-0.5"
+											>
+												<path d="m9 18 6-6-6-6"></path>
+											</svg>
+											<span class="min-w-0 whitespace-normal break-words leading-snug">
+												{topic.text}
+											</span>
+										</a>
+										{topic.hasChildren && (
+											<button
+												type="button"
+												data-topic-toggle={topic.id}
+												aria-label={`Toggle ${topic.text} topics`}
+												aria-expanded="false"
+												class="grid w-7 shrink-0 place-items-center text-muted hover:text-accent-ink"
+											>
+												<svg
+													aria-hidden="true"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													class="size-3.5 transition-transform duration-200 ease-out"
+													data-topic-toggle-icon
+												>
+													<path d="m9 18 6-6-6-6"></path>
+												</svg>
+											</button>
+										)}
+									</div>
 								</li>
 							))}
 						</ol>
@@ -185,21 +227,103 @@ const date = note.publishedAt
 			heading.classList.add("scroll-mt-8");
 		}
 
+		const items = Array.from(document.querySelectorAll("[data-topic-item]"));
 		const links = Array.from(document.querySelectorAll("[data-topic-link]"));
+		const toggles = Array.from(document.querySelectorAll("[data-topic-toggle]"));
 		const activeClasses = ["border-accent", "bg-soft", "text-ink"];
 		const inactiveClasses = ["border-transparent", "text-muted"];
+		const manuallyExpanded = new Set();
+		let activeId = "";
+
+		const itemRecords = items.map((item) => ({
+			depth: Number(item.getAttribute("data-topic-depth") || "1"),
+			id: item.getAttribute("data-topic-item") || "",
+			item,
+		}));
+
+		function parentIdsFor(id) {
+			const index = itemRecords.findIndex((record) => record.id === id);
+			if (index < 0) return [];
+
+			const parents = [];
+			let childDepth = itemRecords[index].depth;
+
+			for (let i = index - 1; i >= 0; i--) {
+				const candidate = itemRecords[i];
+				if (candidate.depth < childDepth) {
+					parents.push(candidate.id);
+					childDepth = candidate.depth;
+				}
+			}
+
+			return parents;
+		}
+
+		function isChildVisible(record) {
+			if (record.depth <= 1) return true;
+			const activeBranch = new Set([activeId, ...parentIdsFor(activeId)]);
+			const parentIds = parentIdsFor(record.id);
+			const directParentId = parentIds[0] ?? "";
+
+			return (
+				record.id === activeId ||
+				activeBranch.has(record.id) ||
+				activeBranch.has(directParentId) ||
+				manuallyExpanded.has(directParentId)
+			);
+		}
+
+		function syncTopicTree() {
+			const activeBranch = new Set([activeId, ...parentIdsFor(activeId)]);
+			for (const record of itemRecords) {
+				const visible = isChildVisible(record);
+				record.item.hidden = false;
+				record.item.style.maxHeight = visible ? "72px" : "0px";
+				record.item.style.opacity = visible ? "1" : "0";
+				record.item.style.transform = visible ? "translateY(0)" : "translateY(-4px)";
+				record.item.style.pointerEvents = visible ? "auto" : "none";
+			}
+
+			for (const toggle of toggles) {
+				const id = toggle.getAttribute("data-topic-toggle") || "";
+				const expanded = manuallyExpanded.has(id) || activeBranch.has(id);
+				toggle.setAttribute("aria-expanded", String(expanded));
+				toggle
+					.querySelector("[data-topic-toggle-icon]")
+					?.classList.toggle("rotate-90", expanded);
+			}
+		}
 
 		function setActive(id) {
+			activeId = id;
 			for (const link of links) {
 				const isActive = link.getAttribute("data-topic-link") === id;
+				const row = link.parentElement;
 				for (const className of activeClasses) {
-					link.classList.toggle(className, isActive);
+					row?.classList.toggle(className, isActive);
 				}
 				for (const className of inactiveClasses) {
-					link.classList.toggle(className, !isActive);
+					row?.classList.toggle(className, !isActive);
 				}
 				link.querySelector("[data-topic-icon]")?.classList.toggle("opacity-0", !isActive);
+				link
+					.querySelector("[data-topic-icon]")
+					?.classList.toggle("translate-x-0.5", isActive);
 			}
+
+			syncTopicTree();
+		}
+
+		for (const toggle of toggles) {
+			toggle.addEventListener("click", () => {
+				const id = toggle.getAttribute("data-topic-toggle") || "";
+				if (manuallyExpanded.has(id)) {
+					manuallyExpanded.delete(id);
+				} else {
+					manuallyExpanded.add(id);
+				}
+				syncTopicTree();
+			});
 		}
 
 		if (headings.length > 0 && links.length > 0) {

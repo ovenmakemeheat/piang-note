@@ -1,0 +1,19 @@
+{
+  "name": "@piang-note/env",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./web": "./src/web.ts"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "^0.13.1",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@piang-note/config": "workspace:*",
+    "@piang-note/infra": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

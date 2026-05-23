@@ -1,0 +1,3 @@
+{
+  "extends": "@piang-note/config/tsconfig.base.json"
+}

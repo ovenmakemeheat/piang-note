@@ -1,0 +1,349 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getGraphData } from "../lib/content";
+
+const graph = await getGraphData();
+const nodes = [
+	...graph.notes.map((note) => ({
+		id: note._id,
+		label: note.title,
+		slug: `/notes/${note.slug}/`,
+		type: "note",
+	})),
+	...graph.categories.map((category) => ({
+		id: category._id,
+		label: category.title,
+		slug: `/categories/${category.slug}/`,
+		type: "category",
+	})),
+];
+const links = graph.notes.flatMap((note) => [
+	...note.links.map((link) => ({
+		source: note._id,
+		target: link._id,
+		type: "link",
+	})),
+	...note.categories.map((category) => ({
+		source: note._id,
+		target: category._id,
+		type: "category",
+	})),
+]);
+---
+
+<Layout title="Graph | piang-note">
+	<section class="mx-auto max-w-[1180px] px-6 pt-14 max-[820px]:pt-9">
+		<div class="grid gap-4">
+			<div class="flex flex-wrap items-center justify-between gap-3 border-rule border-b pb-3">
+				<div class="flex flex-wrap gap-3 text-[0.82rem] text-muted">
+					<span>{graph.notes.length} notes</span>
+					<span>{graph.categories.length} categories</span>
+					<span>{links.length} relationships</span>
+				</div>
+				<button
+					type="button"
+					data-graph-reset
+					class="border border-rule bg-paper px-3 py-1.5 text-sm text-accent-ink hover:border-accent"
+				>
+					Reset
+				</button>
+			</div>
+
+			<div
+				class="relative min-h-[620px] overflow-hidden border border-rule bg-paper"
+				data-graph-panel
+				data-nodes={JSON.stringify(nodes)}
+				data-links={JSON.stringify(links)}
+			>
+				<canvas data-graph-canvas class="absolute inset-0 h-full w-full cursor-grab"></canvas>
+
+				<div class="pointer-events-none absolute top-4 left-4 grid gap-2 border border-rule bg-page/90 p-3 text-sm shadow-sm backdrop-blur">
+					<div class="flex items-center gap-2">
+						<span class="size-2.5 rounded-full bg-accent"></span>
+						<span>Note</span>
+					</div>
+					<div class="flex items-center gap-2">
+						<span class="size-2.5 rounded-full bg-soft ring-1 ring-accent"></span>
+						<span>Category</span>
+					</div>
+				</div>
+
+				<div class="absolute right-4 bottom-4 max-w-[280px] border border-rule bg-page/90 p-3 text-sm text-muted shadow-sm backdrop-blur" data-graph-status>
+					Drag to pan, scroll to zoom, drag nodes, click a node to open it.
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<script>
+		const panel = document.querySelector("[data-graph-panel]");
+		const canvas = panel?.querySelector("[data-graph-canvas]");
+		const resetButton = document.querySelector("[data-graph-reset]");
+		const status = panel?.querySelector("[data-graph-status]");
+		const nodes = JSON.parse(panel?.getAttribute("data-nodes") || "[]");
+		const links = JSON.parse(panel?.getAttribute("data-links") || "[]");
+		const colors = {
+			accent: "#1d6f5d",
+			accentInk: "#123f36",
+			ink: "#1f211d",
+			muted: "#706b62",
+			page: "#f8f7f1",
+			rule: "#d7d1c4",
+			soft: "#eee9dd",
+		};
+
+		if (canvas) {
+			const context = canvas.getContext("2d");
+			const nodeMap = new Map();
+			const graphNodes = nodes.map((node, index) => {
+				const angle = (index / Math.max(nodes.length, 1)) * Math.PI * 2;
+				const radius = 170 + (index % 3) * 34;
+				const graphNode = {
+					...node,
+					fixed: false,
+					radius: node.type === "note" ? 18 : 13,
+					vx: 0,
+					vy: 0,
+					x: Math.cos(angle) * radius,
+					y: Math.sin(angle) * radius,
+				};
+				nodeMap.set(node.id, graphNode);
+				return graphNode;
+			});
+			const graphLinks = links
+				.map((link) => ({
+					...link,
+					sourceNode: nodeMap.get(link.source),
+					targetNode: nodeMap.get(link.target),
+				}))
+				.filter((link) => link.sourceNode && link.targetNode);
+
+			let width = 0;
+			let height = 0;
+			let scale = 1;
+			let offsetX = 0;
+			let offsetY = 0;
+			let hoveredNode = null;
+			let draggedNode = null;
+			let isPanning = false;
+			let moved = false;
+			let lastPointer = { x: 0, y: 0 };
+
+			const setStatus = (message) => {
+				if (status) status.textContent = message;
+			};
+
+			const resize = () => {
+				const rect = canvas.getBoundingClientRect();
+				const ratio = window.devicePixelRatio || 1;
+				width = rect.width;
+				height = rect.height;
+				canvas.width = Math.floor(width * ratio);
+				canvas.height = Math.floor(height * ratio);
+				context.setTransform(ratio, 0, 0, ratio, 0, 0);
+				offsetX = width / 2;
+				offsetY = height / 2;
+			};
+
+			const pointerPoint = (event) => {
+				const rect = canvas.getBoundingClientRect();
+				return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+			};
+
+			const screenToWorld = (point) => ({
+				x: (point.x - offsetX) / scale,
+				y: (point.y - offsetY) / scale,
+			});
+
+			const hitTest = (point) => {
+				const world = screenToWorld(point);
+				return graphNodes.findLast((node) => Math.hypot(world.x - node.x, world.y - node.y) <= node.radius + 7);
+			};
+
+			const tick = () => {
+				for (let i = 0; i < graphNodes.length; i++) {
+					for (let j = i + 1; j < graphNodes.length; j++) {
+						const a = graphNodes[i];
+						const b = graphNodes[j];
+						const dx = b.x - a.x || 0.01;
+						const dy = b.y - a.y || 0.01;
+						const distance = Math.max(28, Math.hypot(dx, dy));
+						const force = 560 / (distance * distance);
+						const fx = (dx / distance) * force;
+						const fy = (dy / distance) * force;
+						if (!a.fixed) {
+							a.vx -= fx;
+							a.vy -= fy;
+						}
+						if (!b.fixed) {
+							b.vx += fx;
+							b.vy += fy;
+						}
+					}
+				}
+
+				for (const link of graphLinks) {
+					const source = link.sourceNode;
+					const target = link.targetNode;
+					const dx = target.x - source.x;
+					const dy = target.y - source.y;
+					const distance = Math.max(1, Math.hypot(dx, dy));
+					const desired = link.type === "category" ? 120 : 165;
+					const force = (distance - desired) * 0.004;
+					const fx = (dx / distance) * force;
+					const fy = (dy / distance) * force;
+					if (!source.fixed) {
+						source.vx += fx;
+						source.vy += fy;
+					}
+					if (!target.fixed) {
+						target.vx -= fx;
+						target.vy -= fy;
+					}
+				}
+
+				for (const node of graphNodes) {
+					if (node.fixed) continue;
+					node.vx += -node.x * 0.0008;
+					node.vy += -node.y * 0.0008;
+					node.vx *= 0.86;
+					node.vy *= 0.86;
+					node.x += node.vx;
+					node.y += node.vy;
+				}
+			};
+
+			const drawLabel = (text, x, y, active) => {
+				context.font = `${active ? 15 : 13}px "LINE Seed Sans TH", sans-serif`;
+				context.textAlign = "center";
+				context.textBaseline = "top";
+				const metrics = context.measureText(text);
+				const padding = 7;
+				context.fillStyle = active ? "rgba(248, 247, 241, 0.96)" : "rgba(255, 253, 248, 0.86)";
+				context.fillRect(x - metrics.width / 2 - padding, y - 2, metrics.width + padding * 2, 22);
+				context.fillStyle = active ? colors.ink : colors.muted;
+				context.fillText(text, x, y);
+			};
+
+			const draw = () => {
+				context.clearRect(0, 0, width, height);
+				context.save();
+				context.translate(offsetX, offsetY);
+				context.scale(scale, scale);
+
+				for (const link of graphLinks) {
+					const active = hoveredNode && (link.sourceNode === hoveredNode || link.targetNode === hoveredNode);
+					context.beginPath();
+					context.moveTo(link.sourceNode.x, link.sourceNode.y);
+					context.lineTo(link.targetNode.x, link.targetNode.y);
+					context.strokeStyle = active ? colors.accentInk : colors.rule;
+					context.lineWidth = (active ? 2.4 : link.type === "category" ? 1.1 : 1.6) / scale;
+					context.stroke();
+				}
+
+				for (const node of graphNodes) {
+					const active =
+						node === hoveredNode ||
+						graphLinks.some(
+							(link) =>
+								hoveredNode &&
+								(link.sourceNode === hoveredNode || link.targetNode === hoveredNode) &&
+								(link.sourceNode === node || link.targetNode === node),
+						);
+					context.beginPath();
+					context.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+					context.fillStyle = node.type === "note" ? colors.accent : colors.soft;
+					context.strokeStyle = active ? colors.accentInk : node.type === "note" ? colors.ink : colors.accent;
+					context.lineWidth = active ? 3 / scale : 1.5 / scale;
+					context.fill();
+					context.stroke();
+				}
+
+				for (const node of graphNodes) {
+					if (node === hoveredNode || scale > 0.9) {
+						drawLabel(node.label, node.x, node.y + node.radius + 9, node === hoveredNode);
+					}
+				}
+
+				context.restore();
+			};
+
+			const frame = () => {
+				if (!draggedNode) tick();
+				draw();
+				requestAnimationFrame(frame);
+			};
+
+			canvas.addEventListener("pointerdown", (event) => {
+				lastPointer = pointerPoint(event);
+				moved = false;
+				const hit = hitTest(lastPointer);
+				if (hit) {
+					draggedNode = hit;
+					draggedNode.fixed = true;
+				} else {
+					isPanning = true;
+				}
+				canvas.setPointerCapture(event.pointerId);
+				canvas.classList.add("cursor-grabbing");
+			});
+
+			canvas.addEventListener("pointermove", (event) => {
+				const point = pointerPoint(event);
+				const dx = point.x - lastPointer.x;
+				const dy = point.y - lastPointer.y;
+				if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+
+				if (draggedNode) {
+					const world = screenToWorld(point);
+					draggedNode.x = world.x;
+					draggedNode.y = world.y;
+					draggedNode.vx = 0;
+					draggedNode.vy = 0;
+				} else if (isPanning) {
+					offsetX += dx;
+					offsetY += dy;
+				} else {
+					hoveredNode = hitTest(point) || null;
+					canvas.classList.toggle("cursor-pointer", Boolean(hoveredNode));
+					setStatus(hoveredNode ? hoveredNode.label : "Drag to pan, scroll to zoom, drag nodes, click a node to open it.");
+				}
+
+				lastPointer = point;
+			});
+
+			canvas.addEventListener("pointerup", (event) => {
+				const releasedNode = draggedNode;
+				if (draggedNode) draggedNode.fixed = false;
+				draggedNode = null;
+				isPanning = false;
+				canvas.classList.remove("cursor-grabbing");
+				if (!moved && releasedNode?.slug) window.location.href = releasedNode.slug;
+				canvas.releasePointerCapture(event.pointerId);
+			});
+
+			canvas.addEventListener(
+				"wheel",
+				(event) => {
+					event.preventDefault();
+					const point = pointerPoint(event);
+					const before = screenToWorld(point);
+					scale = Math.min(2.8, Math.max(0.38, scale * (event.deltaY > 0 ? 0.9 : 1.1)));
+					offsetX = point.x - before.x * scale;
+					offsetY = point.y - before.y * scale;
+				},
+				{ passive: false },
+			);
+
+			resetButton?.addEventListener("click", () => {
+				scale = 1;
+				offsetX = width / 2;
+				offsetY = height / 2;
+			});
+
+			new ResizeObserver(resize).observe(canvas);
+			resize();
+			frame();
+		}
+	</script>
+</Layout>

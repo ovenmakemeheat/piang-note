@@ -1,0 +1,226 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getBacklinks, getNote } from "../../lib/content";
+
+const { slug } = Astro.params;
+const note = slug ? await getNote(slug) : undefined;
+
+if (!note) {
+	return Astro.redirect("/");
+}
+
+const backlinks = await getBacklinks(note._id);
+const Content = note.Content;
+const topics = note.topics.filter((topic) => topic.depth <= 4);
+const date = note.publishedAt
+	? new Intl.DateTimeFormat("en", {
+			day: "2-digit",
+			month: "long",
+			year: "numeric",
+		}).format(new Date(note.publishedAt))
+	: "undated";
+---
+
+<Layout title={`${note.title} | piang-note`} description={note.excerpt}>
+	<div class="mx-auto grid max-w-[1180px] gap-8 px-6 pt-14 max-[920px]:pt-9 min-[921px]:grid-cols-[250px_minmax(0,760px)]">
+		<aside class="max-[920px]:hidden">
+			<nav
+				class="sticky top-6 max-h-[calc(100vh-48px)] overflow-y-auto border border-rule bg-paper p-3"
+				aria-label="Topics"
+			>
+				<div class="mb-3 flex items-center justify-between border-rule border-b px-1 pb-3">
+					<a class="text-sm text-accent-ink no-underline" href="/">Notes</a>
+					<span class="text-[0.74rem] uppercase tracking-[0.08em] text-muted">Topics</span>
+				</div>
+				{
+					topics.length > 0 && (
+						<ol class="m-0 grid list-none gap-1 p-0 text-sm">
+							{topics.map((topic) => (
+								<li>
+									<a
+										href={`#${topic.id}`}
+										data-topic-link={topic.id}
+										class:list={[
+											"group flex items-start gap-2 border border-transparent px-2.5 py-2 text-muted no-underline transition-colors hover:bg-soft/60 hover:text-accent-ink",
+											topic.depth === 1 && "pl-2.5",
+											topic.depth === 2 && "pl-5",
+											topic.depth === 3 && "pl-8 text-[0.82rem]",
+											topic.depth >= 4 && "pl-11 text-[0.78rem]",
+										]}
+									>
+										<svg
+											data-topic-icon
+											aria-hidden="true"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											class="mt-[0.18rem] size-3.5 shrink-0 opacity-0 transition-opacity"
+										>
+											<path d="m9 18 6-6-6-6"></path>
+										</svg>
+										<span class="min-w-0 leading-snug">{topic.text}</span>
+									</a>
+								</li>
+							))}
+						</ol>
+					)
+				}
+			</nav>
+		</aside>
+
+		<article>
+			<header class="mb-[30px] border-rule border-b pb-6">
+				<a class="mb-[18px] inline-block text-accent-ink min-[921px]:hidden" href="/">Notes</a>
+				<h1 class="mb-5 max-w-[860px] text-[clamp(2.25rem,6vw,5rem)] leading-[0.98] font-normal">
+					{note.title}
+				</h1>
+				<div class="mb-2.5 flex flex-wrap gap-3 text-[0.82rem] text-muted">
+					<time datetime={note.publishedAt}>{date}</time>
+					<span>{note.categories.length} categories</span>
+				</div>
+				{
+					note.categories.length > 0 && (
+						<div class="mt-4 flex flex-wrap gap-2" aria-label="Categories">
+							{note.categories.map((category) => (
+								<a
+									href={`/categories/${category.slug}/`}
+									class="border border-rule bg-soft px-2 py-1 text-accent-ink no-underline"
+								>
+									{category.title}
+								</a>
+							))}
+						</div>
+					)
+				}
+			</header>
+
+			<div
+				data-note-body
+				class="text-[1.08rem] leading-[1.86] text-ink
+					[&_a]:text-accent-ink
+					[&_blockquote]:my-6 [&_blockquote]:border-accent [&_blockquote]:border-l [&_blockquote]:bg-soft/50 [&_blockquote]:py-3 [&_blockquote]:pr-4 [&_blockquote]:pl-5 [&_blockquote]:text-muted
+					[&_code]:border [&_code]:border-rule [&_code]:bg-soft [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[0.92em]
+					[&_h1]:mt-10 [&_h1]:mb-4 [&_h1]:text-[2.4rem] [&_h1]:font-normal [&_h1]:leading-[1.08]
+					[&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:border-rule [&_h2]:border-b [&_h2]:pb-2 [&_h2]:text-[1.8rem] [&_h2]:font-normal [&_h2]:leading-[1.18]
+					[&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-[1.35rem] [&_h3]:font-normal [&_h3]:leading-[1.25]
+					[&_h4]:mt-7 [&_h4]:mb-2 [&_h4]:text-[1.1rem] [&_h4]:font-normal [&_h4]:leading-[1.3]
+					[&_h5]:mt-6 [&_h5]:mb-2 [&_h5]:text-base [&_h5]:font-normal
+					[&_h6]:mt-6 [&_h6]:mb-2 [&_h6]:text-sm [&_h6]:font-normal [&_h6]:text-muted
+					[&_hr]:my-8 [&_hr]:border-rule
+					[&_img]:my-6 [&_img]:max-w-full [&_img]:border [&_img]:border-rule
+					[&_li]:my-1.5
+					[&_ol]:my-5 [&_ol]:pl-6
+					[&_p]:mb-[1.2em]
+					[&_pre]:my-6 [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-rule [&_pre]:bg-paper [&_pre]:p-5 [&_pre]:text-[0.92rem] [&_pre]:leading-[1.7]
+					[&_pre_code]:border-0 [&_pre_code]:bg-transparent [&_pre_code]:p-0
+					[&_table]:my-6 [&_table]:w-full [&_table]:border-collapse [&_table]:text-left
+					[&_td]:border [&_td]:border-rule [&_td]:p-3
+					[&_th]:border [&_th]:border-rule [&_th]:bg-soft [&_th]:p-3 [&_th]:font-normal
+					[&_ul]:my-5 [&_ul]:pl-6"
+			>
+				<Content />
+			</div>
+
+			<div class="mt-11 grid gap-6 border-rule border-t pt-6 min-[821px]:grid-cols-2">
+				<section>
+					<h2 class="mb-3 text-base font-normal">Linked notes</h2>
+					{
+						note.links.length > 0 ? (
+							<ul class="m-0 list-none p-0">
+								{note.links.map((link) => (
+									<li class="border-rule border-b py-2.5">
+										<a href={`/notes/${link.slug}/`}>{link.title}</a>
+									</li>
+								))}
+							</ul>
+						) : (
+							<p class="text-muted">No outgoing links yet.</p>
+						)
+					}
+				</section>
+				<section>
+					<h2 class="mb-3 text-base font-normal">Backlinks</h2>
+					{
+						backlinks.length > 0 ? (
+							<ul class="m-0 list-none p-0">
+								{backlinks.map((link) => (
+									<li class="border-rule border-b py-2.5">
+										<a href={`/notes/${link.slug}/`}>{link.title}</a>
+									</li>
+								))}
+							</ul>
+						) : (
+							<p class="text-muted">No backlinks yet.</p>
+						)
+					}
+				</section>
+			</div>
+		</article>
+	</div>
+
+	<script>
+		const slugify = (value) =>
+			value
+				.toLowerCase()
+				.trim()
+				.replace(/[`*_~[\]()]/g, "")
+				.replace(/&/g, "and")
+				.replace(/[^a-z0-9ก-๙]+/g, "-")
+				.replace(/^-+|-+$/g, "");
+
+		const body = document.querySelector("[data-note-body]");
+		const headings = Array.from(
+			body?.querySelectorAll("h1, h2, h3, h4, h5, h6") ?? [],
+		);
+		const seen = new Map();
+
+		for (const heading of headings) {
+			const baseId = slugify(heading.textContent || "") || "section";
+			const count = seen.get(baseId) ?? 0;
+			seen.set(baseId, count + 1);
+			heading.id = count === 0 ? baseId : `${baseId}-${count + 1}`;
+			heading.classList.add("scroll-mt-8");
+		}
+
+		const links = Array.from(document.querySelectorAll("[data-topic-link]"));
+		const activeClasses = ["border-accent", "bg-soft", "text-ink"];
+		const inactiveClasses = ["border-transparent", "text-muted"];
+
+		function setActive(id) {
+			for (const link of links) {
+				const isActive = link.getAttribute("data-topic-link") === id;
+				for (const className of activeClasses) {
+					link.classList.toggle(className, isActive);
+				}
+				for (const className of inactiveClasses) {
+					link.classList.toggle(className, !isActive);
+				}
+				link.querySelector("[data-topic-icon]")?.classList.toggle("opacity-0", !isActive);
+			}
+		}
+
+		if (headings.length > 0 && links.length > 0) {
+			const updateActiveTopic = () => {
+				const offset = 120;
+				let current = headings[0];
+
+				for (const heading of headings) {
+					if (heading.getBoundingClientRect().top <= offset) {
+						current = heading;
+					} else {
+						break;
+					}
+				}
+
+				setActive(current.id);
+			};
+
+			updateActiveTopic();
+			window.addEventListener("scroll", updateActiveTopic, { passive: true });
+			window.addEventListener("resize", updateActiveTopic);
+		}
+	</script>
+</Layout>

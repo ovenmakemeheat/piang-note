@@ -1,0 +1,31 @@
+---
+import NotePreview from "../../components/NotePreview.astro";
+import Layout from "../../layouts/Layout.astro";
+import { getCategory, getNotesByCategory } from "../../lib/content";
+
+const { slug } = Astro.params;
+const category = slug ? await getCategory(slug) : undefined;
+
+if (!category) {
+	return Astro.redirect("/categories/");
+}
+
+const notes = await getNotesByCategory(category.slug);
+---
+
+<Layout title={`${category.title} | piang-note`} description={category.description}>
+	<section class="mx-auto max-w-[1180px] px-6 pt-14 max-[820px]:pt-9">
+		<div class="mb-5 flex items-baseline justify-between border-rule border-b pb-2.5">
+			<a class="mb-[18px] inline-block text-accent-ink" href="/categories/">Categories</a>
+			<span class="text-[0.82rem] text-muted">{category.title}</span>
+		</div>
+
+		<section class="grid">
+			<div class="mb-4 flex items-baseline justify-between border-rule border-b pb-2.5">
+				<h2 class="m-0 text-base font-normal">Notes</h2>
+				<span class="text-[0.82rem] text-muted">{notes.length} total</span>
+			</div>
+			{notes.map((note) => <NotePreview note={note} />)}
+		</section>
+	</section>
+</Layout>

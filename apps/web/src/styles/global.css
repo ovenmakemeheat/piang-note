@@ -1,8 +1,50 @@
 @import "tailwindcss";
 
-/* Add your theme customizations here. */
-/* See the TailwindCSS v4 docs for more info: https://tailwindcss.com/docs/v4-beta */
+@font-face {
+	font-display: swap;
+	font-family: "LINE Seed Sans TH";
+	font-style: normal;
+	font-weight: 400;
+	src: url("/font/LINESeedSansTH_Rg.ttf") format("truetype");
+}
 
 @theme {
-  --font-sans: "Inter", sans-serif;
+	--font-sans: "LINE Seed Sans TH", ui-sans-serif, sans-serif;
+	--color-accent: var(--palette-accent);
+	--color-accent-ink: var(--palette-accent-ink);
+	--color-ink: var(--palette-ink);
+	--color-muted: var(--palette-muted);
+	--color-page: var(--palette-page);
+	--color-paper: var(--palette-paper);
+	--color-rule: var(--palette-rule);
+	--color-soft: var(--palette-soft);
+}
+
+:root {
+	color-scheme: dark;
+	--palette-accent: #56d1b3;
+	--palette-accent-ink: #8ff0d7;
+	--palette-ink: #ece7db;
+	--palette-muted: #aaa397;
+	--palette-page: #11130f;
+	--palette-paper: #191b16;
+	--palette-rule: #34382f;
+	--palette-soft: #252920;
+}
+
+:root[data-theme="light"] {
+	color-scheme: light;
+	--palette-accent: #1d6f5d;
+	--palette-accent-ink: #123f36;
+	--palette-ink: #1f211d;
+	--palette-muted: #706b62;
+	--palette-page: #f8f7f1;
+	--palette-paper: #fffdf8;
+	--palette-rule: #d7d1c4;
+	--palette-soft: #eee9dd;
+}
+
+::selection {
+	background: var(--palette-accent);
+	color: var(--palette-page);
 }

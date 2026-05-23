@@ -1,28 +1,47 @@
 ---
+import NotePreview from "../components/NotePreview.astro";
 import Layout from "../layouts/Layout.astro";
+import { getCategories, getNotes } from "../lib/content";
 
-const TITLE_TEXT = `
- ██████╗ ███████╗████████╗████████╗███████╗██████╗
- ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
- ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
- ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
- ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
- ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
-
- ████████╗    ███████╗████████╗ █████╗  ██████╗██╗  ██╗
- ╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝
-    ██║       ███████╗   ██║   ███████║██║     █████╔╝
-    ██║       ╚════██║   ██║   ██╔══██║██║     ██╔═██╗
-    ██║       ███████║   ██║   ██║  ██║╚██████╗██║  ██╗
-    ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
- `;
+const [notes, categories] = await Promise.all([getNotes(), getCategories()]);
 ---
 
 <Layout title="piang-note">
-  <div class="container mx-auto max-w-3xl px-4 py-2">
-    <pre class="overflow-x-auto font-mono text-sm text-white">{TITLE_TEXT}</pre>
-    <div class="grid gap-6">
-    </div>
-  </div>
-</Layout>
+	<section class="mx-auto max-w-[1180px] px-6 pt-14 max-[820px]:pt-9">
+		<h1 class="mb-6 text-[2rem] leading-[1.2] font-normal">Greetings</h1>
 
+		<div class="grid items-start gap-9 min-[821px]:grid-cols-[minmax(0,1fr)_minmax(260px,340px)]">
+			<section class="grid" aria-labelledby="notes-heading">
+				<div class="mb-4 flex items-baseline justify-between border-rule border-b pb-2.5">
+					<h2 id="notes-heading" class="m-0 text-base font-normal">Latest notes</h2>
+					<span class="text-[0.82rem] text-muted">{notes.length} total</span>
+				</div>
+				{notes.map((note) => <NotePreview note={note} />)}
+			</section>
+
+			<aside class="grid gap-2.5" aria-labelledby="categories-heading">
+				<div class="mb-4 flex items-baseline justify-between border-rule border-b pb-2.5">
+					<h2 id="categories-heading" class="m-0 text-base font-normal">Categories</h2>
+					<a href="/categories/" class="text-[0.9rem] text-accent-ink">Manage view</a>
+				</div>
+				<div class="grid gap-2.5">
+					{
+						categories.map((category) => (
+							<a
+								href={`/categories/${category.slug}/`}
+								class="grid gap-[5px] border border-rule bg-paper p-3.5 no-underline hover:border-accent"
+							>
+								<strong>{category.title}</strong>
+								{category.description && (
+									<span class="text-[0.9rem] leading-[1.55] text-muted">
+										{category.description}
+									</span>
+								)}
+							</a>
+						))
+					}
+				</div>
+			</aside>
+		</div>
+	</section>
+</Layout>

@@ -1,0 +1,33 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getCategories, getNotes } from "../../lib/content";
+
+const [categories, notes] = await Promise.all([getCategories(), getNotes()]);
+---
+
+<Layout title="Categories | piang-note">
+	<section class="mx-auto max-w-[1180px] px-6 pt-14 max-[820px]:pt-9">
+		<div class="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-2.5">
+			{
+				categories.map((category) => {
+					const count = notes.filter((note) =>
+						note.categories.some((item) => item.slug === category.slug),
+					).length;
+
+					return (
+						<a
+							href={`/categories/${category.slug}/`}
+							class="grid gap-[5px] border border-rule bg-paper p-3.5 no-underline hover:border-accent"
+						>
+							<span class="text-[0.82rem] text-muted">{count} notes</span>
+							<strong class="text-[1.4rem] font-normal">{category.title}</strong>
+							{category.description && (
+								<p class="mt-0 leading-[1.7] text-muted">{category.description}</p>
+							)}
+						</a>
+					);
+				})
+			}
+		</div>
+	</section>
+</Layout>

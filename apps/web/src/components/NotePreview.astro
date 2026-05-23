@@ -1,0 +1,45 @@
+---
+import type { Note } from "../lib/content";
+
+interface Props {
+	note: Note;
+}
+
+const { note } = Astro.props;
+const date = note.publishedAt
+	? new Intl.DateTimeFormat("en", {
+			day: "2-digit",
+			month: "short",
+			year: "numeric",
+		}).format(new Date(note.publishedAt))
+	: "undated";
+---
+
+<article class="border-rule border-b py-6 first:pt-1">
+	<div class="mb-2.5 flex flex-wrap gap-3 text-[0.82rem] text-muted">
+		<time datetime={note.publishedAt}>{date}</time>
+		<span>{note.links.length} links</span>
+	</div>
+	<h2 class="mb-3 text-[clamp(1.5rem,3vw,2.5rem)] leading-[1.08] font-normal">
+		<a
+			href={`/notes/${note.slug}/`}
+			class="no-underline hover:text-accent-ink hover:underline"
+			>{note.title}</a
+		>
+	</h2>
+	{note.excerpt && <p class="mt-0 leading-[1.7] text-muted">{note.excerpt}</p>}
+	{
+		note.categories.length > 0 && (
+			<div class="mt-4 flex flex-wrap gap-2" aria-label="Categories">
+				{note.categories.map((category) => (
+					<a
+						href={`/categories/${category.slug}/`}
+						class="border border-rule bg-soft px-2 py-1 text-accent-ink no-underline"
+					>
+						{category.title}
+					</a>
+				))}
+			</div>
+		)
+	}
+</article>

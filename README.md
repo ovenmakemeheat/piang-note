@@ -50,7 +50,7 @@ In **Settings → Environments**, create a `production` environment and restrict
 - `ALCHEMY_PASSWORD`: a stable encryption password for production state.
 - `ALCHEMY_STATE_TOKEN`: a stable, random state-store authentication token. If the account already uses Alchemy's default `alchemy-state-service`, reuse its token.
 
-Add the environment **variable** `PUBLIC_SERVER_URL` with the production server URL. This is public configuration, not a secret. Credentials are only passed to the deployment step, never to pull-request builds.
+Credentials are only passed to the deployment step, never to pull-request builds.
 
 CI uses [CloudflareStateStore](https://alchemy.run/guides/cloudflare-state-store/) so deployment state survives fresh runners. The first deployment creates `alchemy-state-service` and the production app resources. Normal development still uses the existing local `.alchemy` state. Keep both Alchemy secrets stable between deployments.
 
@@ -63,7 +63,7 @@ bun run deploy --stage prod
 
 Do not switch an existing production stage from local to remote state without migrating its state first; this workflow does not import or adopt existing resources. It targets `prod`, not the local `dev` stage. No custom domain is added by these workflows.
 
-Local `.env*`, `.dev.vars*`, `.wrangler/`, `.alchemy/`, and `.astro/` files are ignored; example environment files remain tracked.
+Local `.env*`, `.dev.vars*`, `.wrangler/`, `.alchemy/`, and `.astro/` files are ignored.
 
 ## Git Hooks and Formatting
 

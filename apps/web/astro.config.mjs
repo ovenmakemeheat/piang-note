@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 // @ts-check
 import tailwindcss from "@tailwindcss/vite";
 import alchemy from "alchemy/cloudflare/astro";
-import { defineConfig, envField } from "astro/config";
+import { defineConfig } from "astro/config";
 
 const alchemyConfigPath = fileURLToPath(
 	new URL("./.alchemy/local/wrangler.jsonc", import.meta.url),
@@ -27,15 +27,6 @@ export default defineConfig({
 	adapter: shouldUseAlchemy
 		? alchemy({ platformProxy: { configPath: alchemyConfigPath } })
 		: node({ mode: "standalone" }),
-	env: {
-		schema: {
-			PUBLIC_SERVER_URL: envField.string({
-				access: "public",
-				context: "client",
-				default: "http://localhost:3000",
-			}),
-		},
-	},
 	vite: {
 		plugins: [tailwindcss()],
 		resolve: { alias: cloudflareWorkersAlias },

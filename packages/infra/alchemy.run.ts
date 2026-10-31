@@ -13,19 +13,10 @@ const app = await alchemy("piang-note", {
 			? (scope) => new CloudflareStateStore(scope)
 			: undefined,
 });
-const publicServerUrl = alchemy.env.PUBLIC_SERVER_URL;
-
-if (!publicServerUrl) {
-	throw new Error("PUBLIC_SERVER_URL is required to deploy the web app.");
-}
-
 export const web = await Astro("web", {
 	cwd: "../../apps/web",
 	entrypoint: "dist/server/entry.mjs",
 	assets: "dist/client",
-	bindings: {
-		PUBLIC_SERVER_URL: publicServerUrl,
-	},
 });
 
 console.log(`Web    -> ${web.url}`);

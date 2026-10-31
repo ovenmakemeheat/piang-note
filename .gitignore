@@ -8,9 +8,13 @@ dist
 build
 *.tsbuildinfo
 
-# Environment variables
-.env
-.env*.local
+# Local secrets (keep example files tracked)
+.env*
+!.env.example
+!.env.*.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 
 # IDEs and editors
 .vscode/*
@@ -37,8 +41,11 @@ lerna-debug.log*
 .turbo
 .nx
 
-# Better-T-Stack
-.alchemy
+# Alchemy, Astro, and Cloudflare generated state
+.alchemy/
+.astro/
+.wrangler/
+.vite/
 
 # Testing
 coverage

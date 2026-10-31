@@ -1,11 +1,18 @@
 import alchemy from "alchemy";
 import { Astro } from "alchemy/cloudflare";
+import { CloudflareStateStore } from "alchemy/state";
 import { config } from "dotenv";
 
 config({ path: "./.env" });
 config({ path: "../../apps/web/.env" });
 
-const app = await alchemy("piang-note");
+const app = await alchemy("piang-note", {
+	// CI runners are ephemeral; development keeps its existing local state.
+	stateStore:
+		process.env.ALCHEMY_STATE_STORE === "cloudflare"
+			? (scope) => new CloudflareStateStore(scope)
+			: undefined,
+});
 const publicServerUrl = alchemy.env.PUBLIC_SERVER_URL;
 
 if (!publicServerUrl) {

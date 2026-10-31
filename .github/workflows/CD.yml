@@ -1,0 +1,56 @@
+# Adapted from Alchemy v0.91.2's bin/services/github-workflow.ts template.
+# https://alchemy.run/guides/cloudflare-state-store/
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-production
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/CI.yml
+
+  deploy:
+    name: Deploy production
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Deploy Worker through Alchemy
+        working-directory: packages/infra
+        # Run directly so Turborepo's strict environment filtering cannot drop credentials.
+        run: |
+          for name in ALCHEMY_PASSWORD ALCHEMY_STATE_TOKEN CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID PUBLIC_SERVER_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing production secret or variable: $name"
+              exit 1
+            fi
+          done
+          bun run deploy --stage prod
+        env:
+          ALCHEMY_STATE_STORE: cloudflare
+          ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}
+          ALCHEMY_STATE_TOKEN: ${{ secrets.ALCHEMY_STATE_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PUBLIC_SERVER_URL: ${{ vars.PUBLIC_SERVER_URL }}

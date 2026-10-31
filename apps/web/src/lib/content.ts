@@ -1,5 +1,7 @@
+import type { AstroComponentFactory } from "astro/runtime/server/index.js";
+
 type MarkdownModule = {
-	Content: unknown;
+	Content: AstroComponentFactory;
 	frontmatter: Record<string, unknown>;
 };
 
@@ -7,6 +9,12 @@ export type Category = {
 	_id: string;
 	description?: string;
 	slug: string;
+	title: string;
+};
+
+export type MarkdownPage = {
+	Content: AstroComponentFactory;
+	description?: string;
 	title: string;
 };
 
@@ -24,7 +32,7 @@ export type Topic = {
 
 export type Note = {
 	_id: string;
-	Content: unknown;
+	Content: AstroComponentFactory;
 	categories: Category[];
 	excerpt?: string;
 	links: NoteLink[];
@@ -41,6 +49,9 @@ export type GraphData = {
 };
 
 const noteModules = import.meta.glob<MarkdownModule>("../content/notes/*.md", {
+	eager: true,
+});
+const pageModules = import.meta.glob<MarkdownModule>("../content/pages/*.md", {
 	eager: true,
 });
 const noteRawModules = import.meta.glob<string>("../content/notes/*.md", {
@@ -149,8 +160,14 @@ const noteEntries = Object.entries(noteModules).map(([path, module]) => {
 		title: textValue(module.frontmatter.title, slug),
 		topics: extractTopics(raw),
 		updatedAt: textValue(module.frontmatter.updatedAt),
+		isPublic: module.frontmatter.public === true,
 	};
 });
+
+const publicNoteEntries = noteEntries.filter((note) => note.isPublic);
+const publicCategorySlugs = new Set(
+	publicNoteEntries.flatMap((note) => note.categorySlugs),
+);
 
 function toNote(entry: (typeof noteEntries)[number]): Note {
 	return {
@@ -159,8 +176,10 @@ function toNote(entry: (typeof noteEntries)[number]): Note {
 		categories: resolveCategories(entry.categorySlugs),
 		excerpt: entry.excerpt,
 		links: entry.linkSlugs
-			.map((slug) => noteEntries.find((note) => note.slug === slug))
-			.filter((note): note is (typeof noteEntries)[number] => Boolean(note))
+			.map((slug) => publicNoteEntries.find((note) => note.slug === slug))
+			.filter((note): note is (typeof publicNoteEntries)[number] =>
+				Boolean(note),
+			)
 			.map((note) => ({
 				_id: note._id,
 				slug: note.slug,
@@ -174,27 +193,43 @@ function toNote(entry: (typeof noteEntries)[number]): Note {
 	};
 }
 
+export async function getMarkdownPage(
+	slug: string,
+): Promise<MarkdownPage | undefined> {
+	const module = pageModules[`../content/pages/${slug}.md`];
+	if (!module) return undefined;
+
+	return {
+		Content: module.Content,
+		description: textValue(module.frontmatter.description),
+		title: textValue(module.frontmatter.title, slug),
+	};
+}
+
 export async function getNotes() {
-	return noteEntries
-		.map(toNote)
-		.sort((a, b) => {
-			const aTime = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
-			const bTime = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
-			return bTime - aTime;
-		});
+	return publicNoteEntries.map(toNote).sort((a, b) => {
+		const aTime = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+		const bTime = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+		return bTime - aTime;
+	});
 }
 
 export async function getNote(slug: string) {
-	const entry = noteEntries.find((note) => note.slug === slug);
+	const entry = publicNoteEntries.find((note) => note.slug === slug);
 	return entry ? toNote(entry) : undefined;
 }
 
 export async function getCategories() {
-	return categories;
+	return categories.filter((category) =>
+		publicCategorySlugs.has(category.slug),
+	);
 }
 
 export async function getCategory(slug: string) {
-	return categories.find((category) => category.slug === slug);
+	return categories.find(
+		(category) =>
+			category.slug === slug && publicCategorySlugs.has(category.slug),
+	);
 }
 
 export async function getNotesByCategory(slug: string) {
@@ -210,6 +245,9 @@ export async function getBacklinks(noteId: string) {
 }
 
 export async function getGraphData(): Promise<GraphData> {
-	const [categoryList, notes] = await Promise.all([getCategories(), getNotes()]);
+	const [categoryList, notes] = await Promise.all([
+		getCategories(),
+		getNotes(),
+	]);
 	return { categories: categoryList, notes };
 }

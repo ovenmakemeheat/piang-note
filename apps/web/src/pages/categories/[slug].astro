@@ -10,22 +10,28 @@ if (!category) {
 	return Astro.redirect("/categories/");
 }
 
-const notes = await getNotesByCategory(category.slug);
+const posts = await getNotesByCategory(category.slug);
 ---
 
-<Layout title={`${category.title} | piang-note`} description={category.description}>
-	<section class="mx-auto max-w-[1180px] px-6 pt-14 max-[820px]:pt-9">
-		<div class="mb-5 flex items-baseline justify-between border-rule border-b pb-2.5">
-			<a class="mb-[18px] inline-block text-accent-ink" href="/categories/">Categories</a>
-			<span class="text-[0.82rem] text-muted">{category.title}</span>
-		</div>
-
-		<section class="grid">
-			<div class="mb-4 flex items-baseline justify-between border-rule border-b pb-2.5">
-				<h2 class="m-0 text-base font-normal">Notes</h2>
-				<span class="text-[0.82rem] text-muted">{notes.length} total</span>
-			</div>
-			{notes.map((note) => <NotePreview note={note} />)}
+<Layout title={`${category.title} | Piang Note`} description={category.description}>
+	<div class="page-shell page-shell--compact">
+		<p class="breadcrumb"><a href="/categories/">Tags</a><span aria-hidden="true">/</span>{category.title}</p>
+		<section class="page-intro page-intro--tight" aria-labelledby="page-title">
+			<h1 class="page-title" id="page-title">{category.title}</h1>
+			{category.description && <p class="page-lede">{category.description}</p>}
 		</section>
-	</section>
+
+		<section aria-labelledby="entries-heading">
+			<div class="section-heading">
+				<h2 id="entries-heading">Posts</h2>
+			</div>
+			{posts.length > 0 ? (
+				<div class="entry-list">
+					{posts.map((note) => <NotePreview note={note} />)}
+				</div>
+			) : (
+				<p class="empty-note">No posts with this tag yet.</p>
+			)}
+		</section>
+	</div>
 </Layout>

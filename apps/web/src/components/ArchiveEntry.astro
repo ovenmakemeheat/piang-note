@@ -1,0 +1,34 @@
+---
+import type { Note } from "../lib/content";
+
+interface Props {
+	note: Note;
+}
+
+const { note } = Astro.props;
+const date = note.publishedAt
+	? new Intl.DateTimeFormat("en", {
+			day: "numeric",
+			month: "long",
+			year: "numeric",
+			timeZone: "UTC",
+		}).format(new Date(`${note.publishedAt.slice(0, 10)}T00:00:00Z`))
+	: "Undated";
+---
+
+<li class="archive-post">
+	<a href={`/blog/${note.slug}/`}>{note.title}</a>,
+	<time datetime={note.publishedAt}>{date}</time>
+	{
+		note.categories.length > 0 && (
+			<span class="archive-post-tags">
+				{note.categories.map((category, index) => (
+					<>
+						{index > 0 && <span aria-hidden="true">, </span>}
+						<a href={`/categories/${category.slug}/`}>{category.title}</a>
+					</>
+				))}
+			</span>
+		)
+	}
+</li>

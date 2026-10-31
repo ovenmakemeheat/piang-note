@@ -7,7 +7,7 @@ const nodes = [
 	...graph.notes.map((note) => ({
 		id: note._id,
 		label: note.title,
-		slug: `/notes/${note.slug}/`,
+		slug: `/blog/${note.slug}/`,
 		type: "note",
 	})),
 	...graph.categories.map((category) => ({
@@ -31,49 +31,39 @@ const links = graph.notes.flatMap((note) => [
 ]);
 ---
 
-<Layout title="Graph | piang-note">
-	<section class="mx-auto max-w-[1180px] px-6 pt-14 max-[820px]:pt-9">
-		<div class="grid gap-4">
-			<div class="flex flex-wrap items-center justify-between gap-3 border-rule border-b pb-3">
-				<div class="flex flex-wrap gap-3 text-[0.82rem] text-muted">
-					<span>{graph.notes.length} notes</span>
-					<span>{graph.categories.length} categories</span>
-					<span>{links.length} relationships</span>
-				</div>
-				<button
-					type="button"
-					data-graph-reset
-					class="border border-rule bg-paper px-3 py-1.5 text-sm text-accent-ink hover:border-accent"
-				>
-					Reset
-				</button>
+<Layout title="Graph | Piang Note" description="An interactive map of posts and the topics that connect them.">
+	<div class="page-shell">
+		<section class="page-intro page-intro--tight" aria-labelledby="page-title">
+			<p class="eyebrow">Connected writing</p>
+			<h1 class="page-title" id="page-title">Graph</h1>
+			<p class="page-lede">Follow the links between posts and topics.</p>
+		</section>
+
+		<div class="graph-toolbar">
+			<div class="graph-stats">
+				<span>{graph.notes.length} posts</span>
+				<span>{graph.categories.length} topics</span>
+				<span>{links.length} links</span>
 			</div>
+			<button type="button" data-graph-reset class="graph-reset">Reset view</button>
+		</div>
 
-			<div
-				class="relative min-h-[620px] overflow-hidden border border-rule bg-paper"
-				data-graph-panel
-				data-nodes={JSON.stringify(nodes)}
-				data-links={JSON.stringify(links)}
-			>
-				<canvas data-graph-canvas class="absolute inset-0 h-full w-full cursor-grab"></canvas>
-
-				<div class="pointer-events-none absolute top-4 left-4 grid gap-2 border border-rule bg-page/90 p-3 text-sm shadow-sm backdrop-blur">
-					<div class="flex items-center gap-2">
-						<span class="size-2.5 rounded-full bg-accent"></span>
-						<span>Note</span>
-					</div>
-					<div class="flex items-center gap-2">
-						<span class="size-2.5 rounded-full bg-soft ring-1 ring-accent"></span>
-						<span>Category</span>
-					</div>
-				</div>
-
-				<div class="absolute right-4 bottom-4 max-w-[280px] border border-rule bg-page/90 p-3 text-sm text-muted shadow-sm backdrop-blur" data-graph-status>
-					Drag to pan, scroll to zoom, drag nodes, click a node to open it.
-				</div>
+		<div
+			class="graph-panel"
+			data-graph-panel
+			data-nodes={JSON.stringify(nodes)}
+			data-links={JSON.stringify(links)}
+		>
+			<canvas data-graph-canvas></canvas>
+			<ul class="graph-legend" aria-label="Graph key">
+				<li><i></i>Post</li>
+				<li><i class="legend-category"></i>Topic</li>
+			</ul>
+			<div class="graph-status" data-graph-status>
+				Drag to pan, scroll to zoom, and hover over a node to see its title. Select a node to open it.
 			</div>
 		</div>
-	</section>
+	</div>
 
 	<script>
 		const panel = document.querySelector("[data-graph-panel]");
@@ -82,15 +72,26 @@ const links = graph.notes.flatMap((note) => [
 		const status = panel?.querySelector("[data-graph-status]");
 		const nodes = JSON.parse(panel?.getAttribute("data-nodes") || "[]");
 		const links = JSON.parse(panel?.getAttribute("data-links") || "[]");
-		const colors = {
-			accent: "#1d6f5d",
-			accentInk: "#123f36",
-			ink: "#1f211d",
-			muted: "#706b62",
-			page: "#f8f7f1",
-			rule: "#d7d1c4",
-			soft: "#eee9dd",
+		const readPalette = () => {
+			const style = getComputedStyle(document.documentElement);
+			return {
+				accent: style.getPropertyValue("--palette-accent").trim(),
+				accentInk: style.getPropertyValue("--palette-accent-ink").trim(),
+				ink: style.getPropertyValue("--palette-ink").trim(),
+				muted: style.getPropertyValue("--palette-muted").trim(),
+				page: style.getPropertyValue("--palette-page").trim(),
+				paper: style.getPropertyValue("--palette-paper").trim(),
+				rule: style.getPropertyValue("--palette-rule").trim(),
+				soft: style.getPropertyValue("--palette-soft").trim(),
+			};
 		};
+		let colors = readPalette();
+		new MutationObserver(() => {
+			colors = readPalette();
+		}).observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["data-theme"],
+		});
 
 		if (canvas) {
 			const context = canvas.getContext("2d");
@@ -219,7 +220,7 @@ const links = graph.notes.flatMap((note) => [
 				context.textBaseline = "top";
 				const metrics = context.measureText(text);
 				const padding = 7;
-				context.fillStyle = active ? "rgba(248, 247, 241, 0.96)" : "rgba(255, 253, 248, 0.86)";
+				context.fillStyle = active ? colors.page : colors.paper;
 				context.fillRect(x - metrics.width / 2 - padding, y - 2, metrics.width + padding * 2, 22);
 				context.fillStyle = active ? colors.ink : colors.muted;
 				context.fillText(text, x, y);
@@ -260,7 +261,7 @@ const links = graph.notes.flatMap((note) => [
 				}
 
 				for (const node of graphNodes) {
-					if (node === hoveredNode || scale > 0.9) {
+					if (node === hoveredNode || scale > 1.4) {
 						drawLabel(node.label, node.x, node.y + node.radius + 9, node === hoveredNode);
 					}
 				}

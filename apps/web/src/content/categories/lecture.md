@@ -1,7 +1,7 @@
 ---
 title: Lecture
 slug: lecture
-description: Notes prepared from class, slide, and workshop material.
+description: Notes from lectures, slides, and workshops.
 ---
 
 Lecture notes preserve the main concepts, workflows, and examples from teaching material.

@@ -1,0 +1,43 @@
+---
+interface Props {
+	position: "top" | "bottom";
+}
+
+const { position } = Astro.props;
+const height = position === "top" ? 150 : 450;
+const seed = position === "top" ? 1847 : 9029;
+
+function seededRandom(initialSeed: number) {
+	let state = initialSeed >>> 0;
+	return () => {
+		state = (state * 1664525 + 1013904223) >>> 0;
+		return state / 4294967296;
+	};
+}
+
+const random = seededRandom(seed);
+const blobs = Array.from({ length: 24 }, () => {
+	const radius = 16 + random() * Math.min(48, height * 0.36);
+	const width = radius * (0.9 + random() * 1.4) * 2;
+	const blobHeight = radius * (0.55 + random() * 0.95) * 2;
+	const corners = Array.from({ length: 8 }, () => Math.round(32 + random() * 36));
+
+	return {
+		x: random() * 100,
+		y: random() * 100,
+		width,
+		height: blobHeight,
+		rotation: Math.round(random() * 360),
+		radius: `${corners.slice(0, 4).join("% ")}% / ${corners.slice(4).join("% ")}%`,
+	};
+});
+---
+
+<div class:list={["blob-field", `blob-field--${position}`]} aria-hidden="true">
+	{blobs.map((blob) => (
+		<span
+			class="blob-shape"
+			style={`--blob-x:${blob.x}%;--blob-y:${blob.y}%;--blob-width:${blob.width}px;--blob-height:${blob.height}px;--blob-rotation:${blob.rotation}deg;--blob-radius:${blob.radius}`}
+		></span>
+	))}
+</div>

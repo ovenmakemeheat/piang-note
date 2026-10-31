@@ -1,0 +1,133 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getBacklinks, getNote } from "../../lib/content";
+
+const { slug } = Astro.params;
+const post = slug ? await getNote(slug) : undefined;
+
+if (!post) {
+	return Astro.redirect("/blog/");
+}
+
+const backlinks = await getBacklinks(post._id);
+const Content = post.Content;
+const topics = post.topics;
+const date = post.publishedAt
+	? new Intl.DateTimeFormat("en", {
+			day: "2-digit",
+			month: "long",
+			year: "numeric",
+		}).format(new Date(post.publishedAt))
+	: "Undated";
+---
+
+<Layout wide title={`${post.title} | Piang Note`} description={post.excerpt}>
+	<div class="page-shell note-layout">
+		<details class="topic-nav" data-topic-nav open>
+			<summary>On this page</summary>
+			{
+				topics.length > 0 ? (
+					<ol>
+						{topics.map((topic) => (
+							<li>
+								<a href={`#${topic.id}`} style={`--depth:${Math.max(0, topic.depth - 1)}`}>
+									{topic.text}
+								</a>
+							</li>
+						))}
+					</ol>
+				) : (
+					<p class="empty-note">No sections in this post.</p>
+				)
+			}
+		</details>
+
+		<article class="note-article">
+			<header class="article-header">
+				<p class="breadcrumb"><a href="/blog/">Blog</a><span aria-hidden="true">/</span>{date}</p>
+				<h1 class="article-title">{post.title}</h1>
+				<div class="article-meta">
+					<time datetime={post.publishedAt}>{date}</time>
+					{post.updatedAt && post.updatedAt !== post.publishedAt && (
+						<time datetime={post.updatedAt}>Updated {post.updatedAt}</time>
+					)}
+				</div>
+				{
+					post.categories.length > 0 && (
+						<div class="article-categories" aria-label="Tags">
+							{post.categories.map((category) => (
+								<a href={`/categories/${category.slug}/`}>{category.title}</a>
+							))}
+						</div>
+					)
+				}
+			</header>
+
+			<div data-post-body class="prose">
+				<Content />
+			</div>
+
+			<div class="note-relations">
+				<section aria-labelledby="related-heading">
+					<h2 id="related-heading">Related posts</h2>
+					{
+						post.links.length > 0 ? (
+							<ul>
+								{post.links.map((link) => (
+									<li><a href={`/blog/${link.slug}/`}>{link.title}</a></li>
+								))}
+							</ul>
+						) : (
+							<p class="empty-note">No related posts yet.</p>
+						)
+					}
+				</section>
+				<section aria-labelledby="backlinks-heading">
+					<h2 id="backlinks-heading">Linked from</h2>
+					{
+						backlinks.length > 0 ? (
+							<ul>
+								{backlinks.map((link) => (
+									<li><a href={`/blog/${link.slug}/`}>{link.title}</a></li>
+								))}
+							</ul>
+						) : (
+							<p class="empty-note">No other post links here yet.</p>
+						)
+					}
+				</section>
+			</div>
+		</article>
+	</div>
+
+	<script>
+		const slugify = (value: string) =>
+			value
+				.toLowerCase()
+				.trim()
+				.replace(/[`*_~[\]()]/g, "")
+				.replace(/&/g, "and")
+				.replace(/[^a-z0-9ก-๙]+/g, "-")
+				.replace(/^-+|-+$/g, "");
+
+		const topicNav = document.querySelector<HTMLDetailsElement>("[data-topic-nav]");
+		const desktopLayout = window.matchMedia("(min-width: 861px)");
+		const syncTopicNav = () => {
+			if (topicNav) topicNav.open = desktopLayout.matches;
+		};
+		syncTopicNav();
+		desktopLayout.addEventListener("change", syncTopicNav);
+
+		const body = document.querySelector("[data-post-body]");
+		const headings = Array.from(body?.querySelectorAll("h1, h2, h3, h4, h5, h6") ?? []);
+		const seen = new Map<string, number>();
+
+		for (const heading of headings) {
+			const baseId = slugify(heading.textContent || "") || "section";
+			const count = seen.get(baseId) ?? 0;
+			seen.set(baseId, count + 1);
+			heading.id = count === 0 ? baseId : `${baseId}-${count + 1}`;
+			heading.classList.add("scroll-mt-8");
+		}
+	</script>
+</Layout>

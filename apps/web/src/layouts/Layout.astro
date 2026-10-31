@@ -1,38 +1,55 @@
 ---
 import "../styles/global.css";
+import BlobField from "../components/BlobField.astro";
 import Header from "../components/Header.astro";
 
 interface Props {
 	description?: string;
 	title?: string;
+	wide?: boolean;
 }
 
 const {
-	description = "A minimal linked notebook managed with markdown.",
-	title = "piang-note",
+	description = "Writing and projects by Guntee Doungmanee.",
+	title = "Guntee Doungmanee’s Notes and Writing",
+	wide = false,
 } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en" data-theme="dark" class="bg-page text-ink font-sans tracking-normal">
+<html lang="en" data-theme="dark">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<meta name="color-scheme" content="dark light" />
+		<meta name="color-scheme" content="dark" />
+		<meta name="theme-color" content="#282828" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Ubuntu+Mono:wght@400;700&display=swap"
+			rel="stylesheet"
+		/>
 		<meta name="description" content={description} />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
-		<script is:inline>
-			const storedTheme = localStorage.getItem("theme");
-			document.documentElement.dataset.theme =
-				storedTheme === "light" ? "light" : "dark";
-		</script>
 	</head>
-	<body class="m-0 min-h-screen">
-		<Header />
-		<main class="pb-16">
-			<slot />
-		</main>
+	<body>
+		<BlobField position="top" />
+		<div class:list={["site-shell", wide && "site-shell--wide"]}>
+			<Header />
+			<main id="main-content">
+				<slot />
+			</main>
+			<footer class="site-footer">
+				<p>© Copyright {new Date().getFullYear()} by Guntee Doungmanee.</p>
+				<p>
+					Contact me via <a href="mailto:Guntee12123@gmail.com">email</a>,
+					<a href="https://linkedin.com/in/gunteed">LinkedIn</a>, or
+					<a href="https://github.com/ovenmakemeheat">GitHub</a>.
+				</p>
+			</footer>
+		</div>
+		<BlobField position="bottom" />
 	</body>
 </html>

@@ -1,7 +1,7 @@
 ---
 title: Microcontrollers
 slug: microcontrollers
-description: Hardware, embedded systems, Arduino, sensors, and edge AI notes.
+description: Arduino, sensors, edge AI, and hands-on embedded work.
 ---
 
 Microcontroller notes collect hardware concepts, board workflows, and embedded AI patterns.

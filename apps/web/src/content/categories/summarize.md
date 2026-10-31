@@ -1,7 +1,7 @@
 ---
 title: Summarize
 slug: summarize
-description: Condensed summaries of longer source material.
+description: Short summaries of longer material.
 ---
 
 Summarize notes turn long references into compact, scannable study material.

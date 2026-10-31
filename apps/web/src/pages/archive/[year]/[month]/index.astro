@@ -1,0 +1,44 @@
+---
+import ArchiveEntry from "../../../../components/ArchiveEntry.astro";
+import Layout from "../../../../layouts/Layout.astro";
+import { getNotes } from "../../../../lib/content";
+
+const year = Number(Astro.params.year);
+const month = Number(Astro.params.month);
+if (
+	!Number.isInteger(year) ||
+	!Number.isInteger(month) ||
+	year < 1900 ||
+	year > 9999 ||
+	month < 1 ||
+	month > 12
+) {
+	return Astro.redirect("/archive/");
+}
+
+const monthName = new Intl.DateTimeFormat("en", {
+	month: "long",
+	timeZone: "UTC",
+}).format(new Date(Date.UTC(year, month - 1, 1)));
+const notes = await getNotes();
+const monthNotes = notes.filter((note) => {
+	if (!note.publishedAt) return false;
+	const date = new Date(`${note.publishedAt.slice(0, 10)}T00:00:00Z`);
+	return date.getUTCFullYear() === year && date.getUTCMonth() + 1 === month;
+});
+---
+
+<Layout title={`Blog Archive for ${monthName}, ${year} | Guntee Doungmanee`}>
+	<div class="page-shell page-shell--compact">
+		<h1 class="archive-title">
+			Blog <a href="/archive/">Archive</a> for {monthName},
+			<a href={`/archive/${year}/`}>{year}</a>
+		</h1>
+		<p class="archive-tools"><a href="/categories/">View tags</a></p>
+
+		<ul class="archive-month-entries">
+			{monthNotes.map((note) => <ArchiveEntry note={note} />)}
+		</ul>
+		{monthNotes.length === 0 && <p class="empty-note">No posts for this month.</p>}
+	</div>
+</Layout>

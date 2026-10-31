@@ -1,0 +1,16 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getMarkdownPage } from "../../lib/content";
+
+const page = await getMarkdownPage("projects");
+if (!page) throw new Error("Missing Markdown page: projects");
+const Content = page.Content;
+---
+
+<Layout title={page.title} description={page.description}>
+	<div class="page-shell page-shell--compact">
+		<article class="markdown-page">
+			<Content />
+		</article>
+	</div>
+</Layout>

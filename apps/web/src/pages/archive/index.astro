@@ -1,0 +1,70 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getNotes } from "../../lib/content";
+
+const notes = await getNotes();
+const groupedNotes = new Map<number, Map<number, typeof notes>>();
+const undatedNotes = notes.filter((note) => !note.publishedAt);
+
+for (const note of notes) {
+	if (!note.publishedAt) continue;
+	const date = new Date(`${note.publishedAt.slice(0, 10)}T00:00:00Z`);
+	if (Number.isNaN(date.getTime())) continue;
+
+	const year = date.getUTCFullYear();
+	const month = date.getUTCMonth() + 1;
+	const yearNotes = groupedNotes.get(year) ?? new Map<number, typeof notes>();
+	const monthNotes = yearNotes.get(month) ?? [];
+	monthNotes.push(note);
+	yearNotes.set(month, monthNotes);
+	groupedNotes.set(year, yearNotes);
+}
+
+const years = Array.from(groupedNotes.entries()).sort(([a], [b]) => b - a);
+---
+
+<Layout title="Blog Archive | Guntee Doungmanee" description="Browse posts by year and month.">
+	<div class="page-shell page-shell--compact">
+		<section class="page-intro page-intro--tight" aria-labelledby="page-title">
+			<h1 class="page-title" id="page-title">Blog Archive</h1>
+		</section>
+
+		<p class="archive-tools"><a href="/categories/">View tags</a></p>
+
+		<ul class="archive-index">
+			{
+				years.map(([year, months]) => (
+					<li class="archive-year-group">
+						<a class="archive-year-link" href={`/archive/${year}/`}>{year}</a>
+						<ul class="archive-months">
+							{Array.from(months.entries()).map(([month, monthNotes]) => {
+								const label = new Intl.DateTimeFormat("en", {
+									month: "long",
+									timeZone: "UTC",
+								}).format(new Date(Date.UTC(year, month - 1, 1)));
+
+								return (
+									<li>
+										<a href={`/archive/${year}/${month}/`}>{label}</a> — {monthNotes.length} {monthNotes.length === 1 ? "entry" : "entries"}
+									</li>
+								);
+							})}
+						</ul>
+					</li>
+				))
+			}
+			{
+				undatedNotes.length > 0 && (
+					<li class="archive-year-group">
+						<span class="archive-year-link">Undated</span>
+						<ul class="archive-months">
+							{undatedNotes.map((note) => (
+								<li><a href={`/blog/${note.slug}/`}>{note.title}</a></li>
+							))}
+						</ul>
+					</li>
+				)
+			}
+		</ul>
+	</div>
+</Layout>

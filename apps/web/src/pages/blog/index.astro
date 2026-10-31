@@ -1,0 +1,16 @@
+---
+import NotePreview from "../../components/NotePreview.astro";
+import Layout from "../../layouts/Layout.astro";
+import { getNotes } from "../../lib/content";
+
+const posts = await getNotes();
+---
+
+<Layout title="Blog | Guntee Doungmanee" description="Notes on computing, machine learning, and engineering.">
+	<div class="page-shell page-shell--home">
+		<h1 class="visually-hidden">Blog</h1>
+		<div class="entry-list">
+			{posts.map((post) => <NotePreview note={post} />)}
+		</div>
+	</div>
+</Layout>

@@ -1,4 +1,7 @@
 ---
+import { Image } from "astro:assets";
+import portrait from "../assets/guntee-profile.jpg";
+
 const links = [
 	{ label: "blog", to: "/blog/" },
 	{ label: "archive", to: "/archive/" },
@@ -9,10 +12,10 @@ const pathname = Astro.url.pathname;
 const isCurrent = (to: string) => pathname === to || pathname.startsWith(to);
 ---
 
-<header class="site-header">
+<header class="site-header" transition:persist="site-header">
 	<div class="site-brand">
 		<a class="site-brand-link" href="/about/">
-			<img src="/images/guntee-profile.jpg" alt="" width="32" height="32" />
+			<Image src={portrait} alt="" width={64} loading="eager" />
 			<span>Guntee Doungmanee</span>
 		</a>’s Notes and Writing
 	</div>
@@ -30,3 +33,19 @@ const isCurrent = (to: string) => pathname === to || pathname.startsWith(to);
 		}
 	</nav>
 </header>
+
+<script>
+	const updateCurrentLink = () => {
+		for (const link of document.querySelectorAll<HTMLAnchorElement>(".site-nav a")) {
+			const isCurrent =
+				window.location.pathname === link.pathname ||
+				window.location.pathname.startsWith(link.pathname);
+			link.classList.toggle("is-current", isCurrent);
+			if (isCurrent) link.setAttribute("aria-current", "page");
+			else link.removeAttribute("aria-current");
+		}
+	};
+
+	updateCurrentLink();
+	document.addEventListener("astro:page-load", updateCurrentLink);
+</script>

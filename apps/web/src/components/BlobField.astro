@@ -4,40 +4,273 @@ interface Props {
 }
 
 const { position } = Astro.props;
-const height = position === "top" ? 150 : 450;
-const seed = position === "top" ? 1847 : 9029;
-
-function seededRandom(initialSeed: number) {
-	let state = initialSeed >>> 0;
-	return () => {
-		state = (state * 1664525 + 1013904223) >>> 0;
-		return state / 4294967296;
-	};
-}
-
-const random = seededRandom(seed);
-const blobs = Array.from({ length: 24 }, () => {
-	const radius = 16 + random() * Math.min(48, height * 0.36);
-	const width = radius * (0.9 + random() * 1.4) * 2;
-	const blobHeight = radius * (0.55 + random() * 0.95) * 2;
-	const corners = Array.from({ length: 8 }, () => Math.round(32 + random() * 36));
-
-	return {
-		x: random() * 100,
-		y: random() * 100,
-		width,
-		height: blobHeight,
-		rotation: Math.round(random() * 360),
-		radius: `${corners.slice(0, 4).join("% ")}% / ${corners.slice(4).join("% ")}%`,
-	};
-});
+const fallbackPath =
+	"M0 0H1600V88C1440 75 1380 98 1200 88C1020 77 1000 54 800 72C600 91 560 105 400 86C240 66 160 58 0 86Z";
 ---
 
-<div class:list={["blob-field", `blob-field--${position}`]} aria-hidden="true">
-	{blobs.map((blob) => (
-		<span
-			class="blob-shape"
-			style={`--blob-x:${blob.x}%;--blob-y:${blob.y}%;--blob-width:${blob.width}px;--blob-height:${blob.height}px;--blob-rotation:${blob.rotation}deg;--blob-radius:${blob.radius}`}
-		></span>
-	))}
+<div
+	class:list={["blob-field", `blob-field--${position}`]}
+	aria-hidden="true"
+	transition:persist={`blob-field-${position}`}
+>
+	<canvas class="blob-canvas" data-blob-canvas data-position={position}></canvas>
+	<svg class="blob-fallback" viewBox="0 0 1600 180" preserveAspectRatio="none">
+		<path d={fallbackPath} />
+	</svg>
 </div>
+
+<script>
+	const vertexSource = `
+		attribute vec2 a_position;
+		void main() {
+			gl_Position = vec4(a_position, 0.0, 1.0);
+		}
+	`;
+
+	const fragmentSource = `
+		precision mediump float;
+		uniform vec2 u_resolution;
+		uniform float u_time;
+		uniform float u_direction;
+		uniform float u_height_scale;
+
+		float hash(vec2 p) {
+			return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+		}
+
+		float noise(vec2 p) {
+			vec2 i = floor(p);
+			vec2 f = fract(p);
+			f = f * f * (3.0 - 2.0 * f);
+			return mix(
+				mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+				mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+				f.y
+			);
+		}
+
+		float fbm(vec2 p) {
+			float value = 0.0;
+			float amplitude = 0.5;
+			for (int octave = 0; octave < 4; octave++) {
+				value += noise(p) * amplitude;
+				p = p * 2.07 + 7.1;
+				amplitude *= 0.5;
+			}
+			return value;
+		}
+
+		float metaballs(vec2 p, float aspect, float time) {
+			float field = 0.0;
+			for (int i = 0; i < 5; i++) {
+				float index = float(i);
+				float phase = index * 1.73;
+				vec2 center = vec2(
+					((index + 0.5) / 5.0) * aspect + 0.1 * sin(time * 0.16 + phase),
+					0.12 + 0.06 * sin(time * 0.14 + phase)
+				);
+				vec2 delta = p - center;
+				field += 0.2 / (dot(delta, delta) + 0.16);
+			}
+			return field;
+		}
+
+		void main() {
+			vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+			float heightScale = max(u_height_scale, 1.0);
+			float aspect = (u_resolution.x / max(u_resolution.y, 1.0)) * heightScale;
+			float y = u_direction < 0.0 ? 1.0 - uv.y : 1.0 - (1.0 - uv.y) * heightScale;
+			vec2 p = vec2(uv.x * aspect, y);
+			float t = u_time * 0.55;
+
+			float warp = fbm(vec2(p.x * 2.0, p.y * 2.8 - t * 0.38));
+			float sway = sin(p.y * 5.4 - t * 0.9 + p.x * 2.4) * 0.04;
+			float x = p.x + sway + (warp - 0.5) * 0.12;
+			float flow = fbm(vec2(x * 4.0 + 2.0, p.y * 4.6 - t * 0.5));
+			float flow2 = fbm(vec2(x * 6.4 + 13.0, p.y * 5.8 - t * 0.68));
+
+			float base = sin(x * 4.8 + flow * 2.4 + t * 0.15) * 0.08
+				+ sin(x * 8.2 - t * 0.16) * 0.025;
+			float tips = sin(x * 11.5 + flow2 * 2.8 + t * 0.18) * 0.03;
+			float boundary = clamp(0.3 + base + tips + (flow - 0.5) * 0.11, 0.18, 0.42);
+			float mass = boundary - p.y;
+			float blobs = metaballs(vec2(x, p.y), aspect, t);
+			float islands = flow2 * 0.24 + flow * 0.12 - p.y * 0.25 + blobs * 0.035 + 0.025;
+			float shape = max(mass, islands - 0.16);
+			if (u_direction > 0.0) {
+				// Preserve the header edge exactly, then continue its texture at the same scale.
+				// A bounded field prevents a deeper footer from becoming one solid color.
+				float interiorField = (flow - 0.5) * 0.8 + (flow2 - 0.5) * 0.5 + 0.04;
+				float depthBlend = smoothstep(0.0, 0.3, -p.y);
+				shape = mix(shape, interiorField, depthBlend);
+			}
+			float n = fbm(vec2(x * 5.5, p.y * 5.0 - t * 0.6));
+			float interior = noise(vec2(x * 1.6 + 5.4, p.y * 2.3 - t * 0.18));
+			float layer = shape + n * 0.05 + (interior - 0.5) * 0.28;
+			float lightThreshold = 0.24 + (0.5 - interior) * 0.28;
+
+			vec3 color = vec3(0.156863, 0.156863, 0.156863);
+			vec3 dark = vec3(0.43, 0.20, 0.13);
+			vec3 mid = vec3(0.62, 0.32, 0.16);
+			vec3 light = vec3(0.76, 0.53, 0.28);
+			color = mix(color, dark, step(-0.12, shape));
+			color = mix(color, mid, step(-0.025, layer));
+			color = mix(color, light, step(lightThreshold, layer + sin(x * 5.0 + t * 0.2) * 0.035));
+			gl_FragColor = vec4(color, 1.0);
+		}
+	`;
+
+	function createShader(gl: WebGLRenderingContext, type: number, source: string) {
+		const shader = gl.createShader(type);
+		if (!shader) return null;
+		gl.shaderSource(shader, source);
+		gl.compileShader(shader);
+		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+			gl.deleteShader(shader);
+			return null;
+		}
+		return shader;
+	}
+
+	for (const canvas of document.querySelectorAll<HTMLCanvasElement>("[data-blob-canvas]")) {
+		const field = canvas.closest<HTMLElement>(".blob-field");
+		if (!field) continue;
+		const useFallback = () => field.classList.add("blob-field--fallback");
+		const gl = canvas.getContext("webgl", {
+			alpha: true,
+			antialias: false,
+			depth: false,
+			stencil: false,
+			premultipliedAlpha: false,
+		});
+		if (!gl) {
+			useFallback();
+			continue;
+		}
+
+		const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource);
+		const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+		if (!vertexShader || !fragmentShader) {
+			useFallback();
+			continue;
+		}
+
+		const program = gl.createProgram();
+		if (!program) {
+			useFallback();
+			continue;
+		}
+		gl.attachShader(program, vertexShader);
+		gl.attachShader(program, fragmentShader);
+		gl.bindAttribLocation(program, 0, "a_position");
+		gl.linkProgram(program);
+		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+			useFallback();
+			continue;
+		}
+
+		const buffer = gl.createBuffer();
+		if (!buffer) {
+			useFallback();
+			continue;
+		}
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.bufferData(
+			gl.ARRAY_BUFFER,
+			new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+			gl.STATIC_DRAW,
+		);
+		gl.useProgram(program);
+		gl.enableVertexAttribArray(0);
+		gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+		gl.clearColor(0.156863, 0.156863, 0.156863, 1.0);
+
+		const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+		const timeLocation = gl.getUniformLocation(program, "u_time");
+		const directionLocation = gl.getUniformLocation(program, "u_direction");
+		const heightScaleLocation = gl.getUniformLocation(program, "u_height_scale");
+		const direction = canvas.dataset.position === "top" ? -1 : 1;
+		const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+		const clockOrigin = (() => {
+			try {
+				const key = "piang-note-fire-clock-origin";
+				const saved = Number(sessionStorage.getItem(key));
+				if (saved > 0) return saved;
+				const now = Date.now();
+				sessionStorage.setItem(key, String(now));
+				return now;
+			} catch {
+				return Date.now();
+			}
+		})();
+		let animationFrame = 0;
+		let elapsed = ((Date.now() - clockOrigin) / 1000) % 1024;
+		let lastDraw = 0;
+		let visible = true;
+
+		const draw = (time: number) => {
+			gl.viewport(0, 0, canvas.width, canvas.height);
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+			gl.uniform1f(timeLocation, time);
+			gl.uniform1f(directionLocation, direction);
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		};
+
+		const resize = () => {
+			const bounds = field.getBoundingClientRect();
+			if (bounds.width === 0 || bounds.height === 0) return;
+			const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.35);
+			const width = Math.round(bounds.width * pixelRatio);
+			const height = Math.round(bounds.height * pixelRatio);
+			if (canvas.width !== width || canvas.height !== height) {
+				canvas.width = width;
+				canvas.height = height;
+			}
+			const heightScale = canvas.dataset.position === "bottom" ? bounds.height / 150 : 1;
+			gl.uniform1f(heightScaleLocation, heightScale);
+			draw(elapsed);
+		};
+
+		const stop = () => {
+			if (animationFrame) cancelAnimationFrame(animationFrame);
+			animationFrame = 0;
+		};
+
+		const tick = (now: number) => {
+			animationFrame = 0;
+			if (!visible || document.hidden || prefersReducedMotion.matches) return;
+			if (now - lastDraw >= 32) {
+				elapsed = ((Date.now() - clockOrigin) / 1000) % 1024;
+				draw(elapsed);
+				lastDraw = now;
+			}
+			animationFrame = requestAnimationFrame(tick);
+		};
+
+		const start = () => {
+			if (!visible || document.hidden) return;
+			if (prefersReducedMotion.matches) {
+				stop();
+				elapsed = ((Date.now() - clockOrigin) / 1000) % 1024;
+				draw(elapsed);
+				return;
+			}
+			if (!animationFrame) animationFrame = requestAnimationFrame(tick);
+		};
+
+		resize();
+		start();
+		new ResizeObserver(resize).observe(field);
+		new IntersectionObserver(([entry]) => {
+			visible = entry.isIntersecting;
+			if (visible) start();
+			else stop();
+		}).observe(field);
+		prefersReducedMotion.addEventListener("change", start);
+		document.addEventListener("visibilitychange", () => {
+			if (document.hidden) stop();
+			else start();
+		});
+	}
+</script>

@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import BlobField from "../components/BlobField.astro";
 import Header from "../components/Header.astro";
+import { ClientRouter } from "astro:transitions";
 
 interface Props {
 	description?: string;
@@ -14,16 +15,22 @@ const {
 	title = "Guntee Doungmanee’s Notes and Writing",
 	wide = false,
 } = Astro.props;
+const socialImageUrl = new URL("/images/site-preview-square.jpg", Astro.url).href;
+const openGraphType =
+	Astro.url.pathname.startsWith("/blog/") && Astro.url.pathname !== "/blog/"
+		? "article"
+		: "website";
 ---
 
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" transition:animate="none">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="color-scheme" content="dark" />
 		<meta name="theme-color" content="#282828" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" sizes="128x128" href="/favicon-square.png" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-square.png" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
@@ -31,8 +38,22 @@ const {
 			rel="stylesheet"
 		/>
 		<meta name="description" content={description} />
+		<meta property="og:type" content={openGraphType} />
+		<meta property="og:url" content={Astro.url.href} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:image" content={socialImageUrl} />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="1200" />
+		<meta property="og:image:alt" content="Portrait of Guntee Doungmanee." />
+		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={socialImageUrl} />
+		<meta name="twitter:image:alt" content="Portrait of Guntee Doungmanee." />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
+		<ClientRouter fallback="swap" />
 	</head>
 	<body>
 		<BlobField position="top" />
@@ -41,12 +62,16 @@ const {
 			<main id="main-content">
 				<slot />
 			</main>
-			<footer class="site-footer">
+			<footer class="site-footer" transition:persist="site-footer">
 				<p>© Copyright {new Date().getFullYear()} by Guntee Doungmanee.</p>
 				<p>
 					Contact me via <a href="mailto:Guntee12123@gmail.com">email</a>,
 					<a href="https://linkedin.com/in/gunteed">LinkedIn</a>, or
 					<a href="https://github.com/ovenmakemeheat">GitHub</a>.
+				</p>
+				<p>
+					Inspired by <a href="https://lucumr.pocoo.org/">Armin Ronacher’s blog</a>.
+					Built with <a href="https://astro.build/">Astro</a>.
 				</p>
 			</footer>
 		</div>

@@ -204,7 +204,6 @@ const fallbackPath =
 		const heightScaleLocation = gl.getUniformLocation(program, "u_height_scale");
 		const backgroundLocation = gl.getUniformLocation(program, "u_background");
 		const direction = canvas.dataset.position === "top" ? -1 : 1;
-		const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 		const clockOrigin = (() => {
 			try {
 				const key = "piang-note-fire-clock-origin";
@@ -268,7 +267,7 @@ const fallbackPath =
 
 		const tick = (now: number) => {
 			animationFrame = 0;
-			if (!visible || document.hidden || prefersReducedMotion.matches) return;
+			if (!visible || document.hidden) return;
 			lastAnimationFrameAt = now;
 			if (now - lastDraw >= 32) {
 				elapsed = currentShaderTime();
@@ -280,12 +279,6 @@ const fallbackPath =
 
 		const start = () => {
 			if (!visible || document.hidden) return;
-			if (prefersReducedMotion.matches) {
-				stop();
-				elapsed = currentShaderTime();
-				draw(elapsed);
-				return;
-			}
 			if (!animationFrame) {
 				lastAnimationFrameAt = performance.now();
 				animationFrame = requestAnimationFrame(tick);
@@ -309,7 +302,6 @@ const fallbackPath =
 			if (
 				visible &&
 				!document.hidden &&
-				!prefersReducedMotion.matches &&
 				performance.now() - lastAnimationFrameAt > 2500
 			) {
 				stop();
@@ -327,7 +319,6 @@ const fallbackPath =
 			if (visible) start();
 			else stop();
 		}).observe(field);
-		prefersReducedMotion.addEventListener("change", start);
 		document.addEventListener("visibilitychange", () => {
 			if (document.hidden) stop();
 			else start();

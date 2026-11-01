@@ -144,13 +144,6 @@ const fallbackPath =
 				animationWatchdog = 0;
 			}
 		};
-		const isIOS =
-			/iPhone|iPad|iPod/.test(navigator.userAgent) ||
-			(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-		if (isIOS) {
-			useFallback();
-			continue;
-		}
 		const gl = canvas.getContext("webgl", {
 			alpha: true,
 			antialias: false,
@@ -165,11 +158,11 @@ const fallbackPath =
 
 		const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource);
 		const fragmentPrecision = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
-		if (!fragmentPrecision?.precision) {
-			useFallback();
-			continue;
-		}
-		const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+		const shaderTimePeriod = fragmentPrecision?.precision ? 1024 : 32;
+		const selectedFragmentSource = fragmentPrecision?.precision
+			? fragmentSource
+			: fragmentSource.replace("precision highp float;", "precision mediump float;");
+		const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, selectedFragmentSource);
 		if (!vertexShader || !fragmentShader) {
 			useFallback();
 			continue;
@@ -224,8 +217,9 @@ const fallbackPath =
 				return Date.now();
 			}
 		})();
+		const currentShaderTime = () => ((Date.now() - clockOrigin) / 1000) % shaderTimePeriod;
 		let animationFrame = 0;
-		let elapsed = ((Date.now() - clockOrigin) / 1000) % 1024;
+		let elapsed = currentShaderTime();
 		let lastDraw = 0;
 		let lastAnimationFrameAt = performance.now();
 		let visible = true;
@@ -277,7 +271,7 @@ const fallbackPath =
 			if (!visible || document.hidden || prefersReducedMotion.matches) return;
 			lastAnimationFrameAt = now;
 			if (now - lastDraw >= 32) {
-				elapsed = ((Date.now() - clockOrigin) / 1000) % 1024;
+				elapsed = currentShaderTime();
 				draw(elapsed);
 				lastDraw = now;
 			}
@@ -288,7 +282,7 @@ const fallbackPath =
 			if (!visible || document.hidden) return;
 			if (prefersReducedMotion.matches) {
 				stop();
-				elapsed = ((Date.now() - clockOrigin) / 1000) % 1024;
+				elapsed = currentShaderTime();
 				draw(elapsed);
 				return;
 			}
@@ -319,7 +313,7 @@ const fallbackPath =
 				performance.now() - lastAnimationFrameAt > 2500
 			) {
 				stop();
-				useFallback();
+				start();
 			}
 		}, 1000);
 		new MutationObserver(updateBackground).observe(document.documentElement, {

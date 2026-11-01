@@ -643,6 +643,30 @@ h6 {
   opacity: 0.28;
 }
 
+.blob-field--fallback .blob-fallback path {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: blob-fallback-flow 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes blob-fallback-flow {
+  0% {
+    transform: translateY(5px) scale(1.03, 0.82);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.03, 1.13);
+  }
+  100% {
+    transform: translateY(3px) scale(1.03, 0.91);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob-field--fallback .blob-fallback path {
+    animation: none;
+  }
+}
+
 .note-layout {
   display: grid;
   grid-template-columns: minmax(150px, 1fr) minmax(0, 760px) minmax(150px, 1fr);

@@ -136,7 +136,21 @@ const fallbackPath =
 	for (const canvas of document.querySelectorAll<HTMLCanvasElement>("[data-blob-canvas]")) {
 		const field = canvas.closest<HTMLElement>(".blob-field");
 		if (!field) continue;
-		const useFallback = () => field.classList.add("blob-field--fallback");
+		let animationWatchdog = 0;
+		const useFallback = () => {
+			field.classList.add("blob-field--fallback");
+			if (animationWatchdog) {
+				window.clearInterval(animationWatchdog);
+				animationWatchdog = 0;
+			}
+		};
+		const isIOS =
+			/iPhone|iPad|iPod/.test(navigator.userAgent) ||
+			(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+		if (isIOS) {
+			useFallback();
+			continue;
+		}
 		const gl = canvas.getContext("webgl", {
 			alpha: true,
 			antialias: false,
@@ -151,10 +165,11 @@ const fallbackPath =
 
 		const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource);
 		const fragmentPrecision = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
-		const selectedFragmentSource = fragmentPrecision?.precision
-			? fragmentSource
-			: fragmentSource.replace("precision highp float;", "precision mediump float;");
-		const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, selectedFragmentSource);
+		if (!fragmentPrecision?.precision) {
+			useFallback();
+			continue;
+		}
+		const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
 		if (!vertexShader || !fragmentShader) {
 			useFallback();
 			continue;
@@ -212,6 +227,7 @@ const fallbackPath =
 		let animationFrame = 0;
 		let elapsed = ((Date.now() - clockOrigin) / 1000) % 1024;
 		let lastDraw = 0;
+		let lastAnimationFrameAt = performance.now();
 		let visible = true;
 
 		const draw = (time: number) => {
@@ -259,6 +275,7 @@ const fallbackPath =
 		const tick = (now: number) => {
 			animationFrame = 0;
 			if (!visible || document.hidden || prefersReducedMotion.matches) return;
+			lastAnimationFrameAt = now;
 			if (now - lastDraw >= 32) {
 				elapsed = ((Date.now() - clockOrigin) / 1000) % 1024;
 				draw(elapsed);
@@ -275,12 +292,36 @@ const fallbackPath =
 				draw(elapsed);
 				return;
 			}
-			if (!animationFrame) animationFrame = requestAnimationFrame(tick);
+			if (!animationFrame) {
+				lastAnimationFrameAt = performance.now();
+				animationFrame = requestAnimationFrame(tick);
+			}
 		};
 
 		updateBackground();
 		resize();
 		start();
+		canvas.addEventListener("webglcontextlost", (event) => {
+			event.preventDefault();
+			stop();
+			useFallback();
+		});
+		animationWatchdog = window.setInterval(() => {
+			if (field.classList.contains("blob-field--fallback")) {
+				window.clearInterval(animationWatchdog);
+				animationWatchdog = 0;
+				return;
+			}
+			if (
+				visible &&
+				!document.hidden &&
+				!prefersReducedMotion.matches &&
+				performance.now() - lastAnimationFrameAt > 2500
+			) {
+				stop();
+				useFallback();
+			}
+		}, 1000);
 		new MutationObserver(updateBackground).observe(document.documentElement, {
 			attributes: true,
 			attributeFilter: ["data-theme"],

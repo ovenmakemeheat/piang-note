@@ -92,6 +92,9 @@ const links = graph.notes.flatMap((note) => [
 			attributes: true,
 			attributeFilter: ["data-theme"],
 		});
+		window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+			colors = readPalette();
+		});
 
 		if (canvas) {
 			const context = canvas.getContext("2d");

@@ -23,12 +23,20 @@ const openGraphType =
 ---
 
 <!doctype html>
-<html lang="en" data-theme="dark" transition:animate="none">
+<html lang="en" data-theme="auto" transition:animate="none">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<meta name="color-scheme" content="dark" />
+		<meta name="color-scheme" content="light dark" />
 		<meta name="theme-color" content="#282828" />
+		<script is:inline>
+			try {
+				const savedScheme = localStorage.getItem("piang-note-color-scheme");
+				if (["auto", "light", "dark"].includes(savedScheme)) {
+					document.documentElement.dataset.theme = savedScheme;
+				}
+			} catch {}
+		</script>
 		<link rel="icon" type="image/png" sizes="128x128" href="/favicon-square.png" />
 		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-square.png" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -76,8 +84,55 @@ const openGraphType =
 					Inspired by <a href="https://lucumr.pocoo.org/">Armin Ronacher’s blog</a>.
 					Built with <a href="https://astro.build/">Astro</a>.
 				</p>
+				<p class="color-scheme-control" role="group" aria-label="Color scheme">
+					Color scheme:
+					<button type="button" data-color-scheme="auto" aria-pressed="true">auto</button>,
+					<button type="button" data-color-scheme="light" aria-pressed="false">light</button>,
+					<button type="button" data-color-scheme="dark" aria-pressed="false">dark</button>.
+				</p>
 			</footer>
 		</div>
 		<BlobField position="bottom" />
+		<script>
+			const root = document.documentElement;
+			const schemeKey = "piang-note-color-scheme";
+			const validSchemes = ["auto", "light", "dark"];
+
+			const syncColorScheme = () => {
+				const scheme = root.dataset.theme || "auto";
+				for (const button of document.querySelectorAll<HTMLButtonElement>("[data-color-scheme]")) {
+					button.setAttribute("aria-pressed", String(button.dataset.colorScheme === scheme));
+				}
+				const pageColor = getComputedStyle(root).getPropertyValue("--palette-page").trim();
+				const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+				if (themeColor && pageColor) themeColor.content = pageColor;
+			};
+
+			const restoreColorScheme = () => {
+				try {
+					const savedScheme = localStorage.getItem(schemeKey);
+					if (savedScheme && validSchemes.includes(savedScheme)) root.dataset.theme = savedScheme;
+				} catch {}
+				syncColorScheme();
+			};
+
+			document.addEventListener("click", (event) => {
+				const target = event.target;
+				if (!(target instanceof Element)) return;
+				const button = target.closest<HTMLButtonElement>("[data-color-scheme]");
+				const scheme = button?.dataset.colorScheme;
+				if (!scheme || !validSchemes.includes(scheme)) return;
+				root.dataset.theme = scheme;
+				try {
+					localStorage.setItem(schemeKey, scheme);
+				} catch {}
+				syncColorScheme();
+			});
+
+			window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", syncColorScheme);
+			document.addEventListener("astro:after-swap", restoreColorScheme);
+			document.addEventListener("astro:page-load", syncColorScheme);
+			restoreColorScheme();
+		</script>
 	</body>
 </html>

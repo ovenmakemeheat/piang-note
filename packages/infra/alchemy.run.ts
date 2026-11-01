@@ -1,5 +1,5 @@
 import alchemy from "alchemy";
-import { Astro } from "alchemy/cloudflare";
+import { Astro, Images } from "alchemy/cloudflare";
 import { CloudflareStateStore } from "alchemy/state";
 import { config } from "dotenv";
 
@@ -17,6 +17,9 @@ export const web = await Astro("web", {
 	cwd: "../../apps/web",
 	entrypoint: "dist/server/entry.mjs",
 	assets: "dist/client",
+	bindings: {
+		IMAGES: Images(),
+	},
 });
 
 console.log(`Web    -> ${web.url}`);

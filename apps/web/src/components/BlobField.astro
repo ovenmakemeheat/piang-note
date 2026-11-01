@@ -28,7 +28,7 @@ const fallbackPath =
 	`;
 
 	const fragmentSource = `
-		precision mediump float;
+		precision highp float;
 		uniform vec2 u_resolution;
 		uniform float u_time;
 		uniform float u_direction;
@@ -150,7 +150,11 @@ const fallbackPath =
 		}
 
 		const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource);
-		const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+		const fragmentPrecision = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+		const selectedFragmentSource = fragmentPrecision?.precision
+			? fragmentSource
+			: fragmentSource.replace("precision highp float;", "precision mediump float;");
+		const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, selectedFragmentSource);
 		if (!vertexShader || !fragmentShader) {
 			useFallback();
 			continue;

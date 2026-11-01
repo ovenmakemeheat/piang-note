@@ -1086,9 +1086,9 @@ h6 {
   }
 
   .markdown-page > p:has(> img[alt^="Portrait of Guntee Doungmanee"]) {
-    float: none;
-    width: min(100%, 170px);
-    margin: 15px 0 24px auto;
+    float: right;
+    width: min(32%, 120px);
+    margin: 4px 0 12px 16px;
   }
 
   .markdown-page h2,

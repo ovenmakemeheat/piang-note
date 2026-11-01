@@ -13,6 +13,8 @@ In data science side, I’m interested the most in generative and multimodal mod
 
 I usually go by `ovenmakemeheat` online. I’m most active on [Facebook](https://www.facebook.com/guntee.doungmanee/) and [Instagram](https://www.instagram.com/pianfff/). You can also reach me by [email](mailto:Guntee12123@gmail.com), or find me on [GitHub](https://github.com/ovenmakemeheat), [LinkedIn](https://linkedin.com/in/gunteed), and [X](https://x.com/microhum).
 
+My CV is available [here](https://www.kmutt.me/guntee_cv).
+
 ## Experience
 
 - **[Present] AI Engineer (part-time), [@QuanXAI](https://quanxai.com/)**. -- Building a financial AI agent with Bedrock AgentCore, LangGraph, and PostgreSQL-backed tools.

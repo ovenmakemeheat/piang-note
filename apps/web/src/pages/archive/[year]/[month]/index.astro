@@ -13,7 +13,7 @@ if (
 	month < 1 ||
 	month > 12
 ) {
-	return Astro.redirect("/archive/");
+	return Astro.rewrite("/404");
 }
 
 const monthName = new Intl.DateTimeFormat("en", {
@@ -26,9 +26,11 @@ const monthNotes = notes.filter((note) => {
 	const date = new Date(`${note.publishedAt.slice(0, 10)}T00:00:00Z`);
 	return date.getUTCFullYear() === year && date.getUTCMonth() + 1 === month;
 });
+if (monthNotes.length === 0) return Astro.rewrite("/404");
+const description = `Browse Guntee Doungmanee’s blog posts from ${monthName} ${year}, with links to the original articles and related tags.`;
 ---
 
-<Layout title={`Blog Archive for ${monthName}, ${year} | Guntee Doungmanee`}>
+<Layout title={`${monthName} ${year} Blog Archive | Guntee Doungmanee`} description={description}>
 	<div class="page-shell page-shell--compact">
 		<h1 class="archive-title">
 			Blog <a href="/archive/">Archive</a> for {monthName},

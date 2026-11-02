@@ -7,13 +7,19 @@ const { slug } = Astro.params;
 const category = slug ? await getCategory(slug) : undefined;
 
 if (!category) {
-	return Astro.redirect("/categories/");
+	return Astro.rewrite("/404");
 }
 
 const posts = await getNotesByCategory(category.slug);
+const description = category.description
+	? `${category.description} Browse related posts by Guntee Doungmanee.`
+	: `Browse ${category.title.toLowerCase()} posts by Guntee Doungmanee.`;
 ---
 
-<Layout title={`${category.title} | Piang Note`} description={category.description}>
+<Layout
+	title={`${category.title} | Guntee Doungmanee`}
+	description={description}
+>
 	<div class="page-shell page-shell--compact">
 		<p class="breadcrumb"><a href="/categories/">Tags</a><span aria-hidden="true">/</span>{category.title}</p>
 		<section class="page-intro page-intro--tight" aria-labelledby="page-title">

@@ -1,0 +1,23 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+Astro.response.status = 404;
+---
+
+<Layout
+	title="Page not found | Guntee Doungmanee"
+	description="The page you requested could not be found. Browse Guntee Doungmanee’s blog, projects, or about page instead."
+	indexable={false}
+>
+	<div class="page-shell page-shell--compact">
+		<section class="page-intro page-intro--tight" aria-labelledby="page-title">
+			<h1 class="page-title" id="page-title">Page not found</h1>
+			<p class="page-lede">That address doesn’t lead to a page here.</p>
+		</section>
+		<ul>
+			<li><a href="/blog/">Read the blog</a></li>
+			<li><a href="/projects/">Browse projects</a></li>
+			<li><a href="/about/">About Guntee</a></li>
+		</ul>
+	</div>
+</Layout>

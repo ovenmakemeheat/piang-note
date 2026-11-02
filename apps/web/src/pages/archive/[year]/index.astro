@@ -5,7 +5,7 @@ import { getNotes } from "../../../lib/content";
 
 const year = Number(Astro.params.year);
 if (!Number.isInteger(year) || year < 1900 || year > 9999) {
-	return Astro.redirect("/archive/");
+	return Astro.rewrite("/404");
 }
 
 const notes = await getNotes();
@@ -22,9 +22,11 @@ for (const note of notes) {
 }
 
 const months = Array.from(groupedNotes.entries()).sort(([a], [b]) => b - a);
+if (months.length === 0) return Astro.rewrite("/404");
+const description = `Browse Guntee Doungmanee’s dated blog posts from ${year}, with links to each article and its related topics.`;
 ---
 
-<Layout title={`Blog Archive for ${year} | Guntee Doungmanee`}>
+<Layout title={`Blog Archive ${year} | Guntee Doungmanee`} description={description}>
 	<div class="page-shell page-shell--compact">
 		<h1 class="archive-title">Blog <a href="/archive/">Archive</a> for {year}</h1>
 		<p class="archive-tools"><a href="/categories/">View tags</a></p>

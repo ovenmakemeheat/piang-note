@@ -2,8 +2,8 @@
 const { slug } = Astro.params;
 
 if (!slug) {
-	return Astro.redirect("/blog/");
+	return Astro.redirect("/blog/", 301);
 }
 
-return Astro.redirect(`/blog/${slug}/`);
+return Astro.redirect(`/blog/${slug}/`, 301);
 ---

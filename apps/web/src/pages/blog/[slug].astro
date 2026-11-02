@@ -1,12 +1,13 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getBacklinks, getNote } from "../../lib/content";
+import { absoluteUrl, PERSON_ID, SITE_URL } from "../../lib/seo";
 
 const { slug } = Astro.params;
 const post = slug ? await getNote(slug) : undefined;
 
 if (!post) {
-	return Astro.redirect("/blog/");
+	return Astro.rewrite("/404");
 }
 
 const backlinks = await getBacklinks(post._id);
@@ -19,9 +20,43 @@ const date = post.publishedAt
 			year: "numeric",
 		}).format(new Date(post.publishedAt))
 	: "Undated";
+const description =
+	post.excerpt ?? `Read ${post.title}, a note by Guntee Doungmanee on computing and engineering.`;
+const canonicalUrl = absoluteUrl(`/blog/${post.slug}/`);
+const articleSchema = {
+	"@type": "BlogPosting",
+	"@id": `${canonicalUrl}#article`,
+	headline: post.title,
+	description,
+	image: [absoluteUrl("/images/site-preview-square.jpg")],
+	datePublished: post.publishedAt || undefined,
+	dateModified: post.updatedAt || post.publishedAt || undefined,
+	mainEntityOfPage: { "@id": canonicalUrl },
+	author: { "@id": PERSON_ID },
+	publisher: { "@id": PERSON_ID },
+	inLanguage: "en",
+	articleSection: post.categories.map((category) => category.title),
+	keywords: post.categories.map((category) => category.title),
+	isPartOf: { "@id": `${SITE_URL}/#website` },
+};
+const breadcrumbSchema = {
+	"@type": "BreadcrumbList",
+	itemListElement: [
+		{ "@type": "ListItem", position: 1, name: "Blog", item: absoluteUrl("/blog/") },
+		{ "@type": "ListItem", position: 2, name: post.title, item: canonicalUrl },
+	],
+};
 ---
 
-<Layout wide title={`${post.title} | Piang Note`} description={post.excerpt}>
+<Layout
+	wide
+	title={`${post.title} | Guntee Doungmanee`}
+	description={description}
+	ogType="article"
+	publishedAt={post.publishedAt}
+	updatedAt={post.updatedAt}
+	structuredData={[articleSchema, breadcrumbSchema]}
+>
 	<div class="page-shell note-layout">
 		<details class="topic-nav" data-topic-nav open>
 			<summary>On this page</summary>

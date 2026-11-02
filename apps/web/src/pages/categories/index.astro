@@ -5,7 +5,10 @@ import { getCategories, getNotes } from "../../lib/content";
 const [categories, notes] = await Promise.all([getCategories(), getNotes()]);
 ---
 
-<Layout title="Tags | Piang Note" description="Browse blog posts by tag.">
+<Layout
+	title="Topics in Computing and AI | Guntee Doungmanee"
+	description="Browse tags across Guntee Doungmanee’s public writing on computing, machine learning, and engineering."
+>
 	<div class="page-shell page-shell--compact">
 		<section class="page-intro page-intro--tight" aria-labelledby="page-title">
 			<h1 class="page-title" id="page-title">Tags</h1>

@@ -7,7 +7,10 @@ if (!page) throw new Error("Missing Markdown page: about");
 const Content = page.Content;
 ---
 
-<Layout title={page.title} description={page.description}>
+<Layout
+	title="Guntee Doungmanee | Computer Engineering and AI"
+	description="Learn about Guntee Doungmanee, a computer engineering student at KMUTT in Bangkok with experience across AI, data science, software engineering, and research."
+>
 	<div class="page-shell page-shell--compact">
 		<article class="markdown-page">
 			<Content />

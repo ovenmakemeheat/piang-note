@@ -23,6 +23,8 @@ import node from "@astrojs/node";
 
 // https://astro.build/config
 export default defineConfig({
+	site: "https://ovenheat.com",
+	trailingSlash: "always",
 	output: "server",
 	adapter: shouldUseAlchemy
 		? alchemy({ platformProxy: { configPath: alchemyConfigPath } })

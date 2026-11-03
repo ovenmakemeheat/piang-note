@@ -181,7 +181,7 @@ const fragmentSource = `
 		}
 		float opacity = 1.0 - smoothstep(0.0, max(u_flame_reach, 0.001), outsideDistance);
 		opacity = mix(1.0, opacity, outside);
-		gl_FragColor = vec4(color, opacity);
+		gl_FragColor = vec4(mix(u_background, color, opacity), 1.0);
 	}
 `;
 
@@ -386,7 +386,7 @@ export function mountImageFlame(
 		const channels = readPageColor();
 		if (!channels) return;
 		gl.useProgram(program);
-		gl.clearColor(channels[0], channels[1], channels[2], 0);
+		gl.clearColor(channels[0], channels[1], channels[2], 1);
 		gl.uniform3f(
 			backgroundLocationRef.location,
 			channels[0],
@@ -490,7 +490,7 @@ export function mountImageFlame(
 			return;
 		}
 		const context = canvas.getContext("webgl", {
-			alpha: true,
+			alpha: false,
 			antialias: false,
 			depth: false,
 			stencil: false,
@@ -633,10 +633,10 @@ export function mountImageFlame(
 			textureHeight,
 		);
 		gl.uniform1f(imageScaleLocationRef.location, 1 / canvasExpansion);
-		gl.clearColor(40 / 255, 40 / 255, 40 / 255, 0);
+		gl.clearColor(40 / 255, 40 / 255, 40 / 255, 1);
 
-		applyTuning();
 		updateBackground();
+		applyTuning();
 		resize();
 		if (typeof ResizeObserver !== "undefined") {
 			resizeObserver = new ResizeObserver(resize);

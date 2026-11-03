@@ -1,0 +1,64 @@
+---
+const showTuner = import.meta.env.DEV;
+const controls = [
+	{ key: "contrast", label: "Image contrast", min: "0.5", max: "4", step: "0.05", value: "1.7" },
+	{ key: "edgeCutoff", label: "Edge cutoff", min: "0", max: "0.2", step: "0.005", value: "0.12" },
+	{ key: "edgeSoftness", label: "Edge softness", min: "0.01", max: "0.25", step: "0.005", value: "0.125" },
+	{ key: "edgeStrength", label: "Edge strength", min: "0", max: "1.8", step: "0.02", value: "0" },
+	{ key: "boundaryWobble", label: "Boundary wobble", min: "0", max: "0.24", step: "0.005", value: "0.07" },
+	{ key: "flameReach", label: "Flame reach", min: "0.02", max: "0.18", step: "0.005", value: "0.075" },
+	{ key: "distortion", label: "Flow distortion", min: "0", max: "2", step: "0.05", value: "1.1" },
+	{ key: "texture", label: "Texture", min: "0", max: "0.12", step: "0.005", value: "0.065" },
+	{ key: "imageDetail", label: "Source detail", min: "0", max: "2", step: "0.05", value: "1.2" },
+	{ key: "colorLayers", label: "Color layers", min: "3", max: "12", step: "1", value: "8" },
+];
+---
+
+{showTuner && (
+	<details class="image-flame-tuner" data-image-flame-tuner>
+		<summary>Flame tuning</summary>
+		<div class="image-flame-tuner-controls">
+			{controls.map((control) => (
+				<label>
+					<span>{control.label}<output data-image-flame-value={control.key}>{control.value}</output></span>
+					<input
+						type="range"
+						min={control.min}
+						max={control.max}
+						step={control.step}
+						value={control.value}
+						data-image-flame-control={control.key}
+					/>
+				</label>
+			))}
+			<button type="button" data-image-flame-reset>Reset values</button>
+		</div>
+	</details>
+)}
+
+<script>
+	import { mountImageFlame } from "../lib/image-flame";
+
+	const active = new Map<HTMLImageElement, () => void>();
+	const imageSelector = [
+		`.markdown-page img[alt^="Portrait of Guntee Doungmanee"]`,
+		`.markdown-page img[alt^="AI-generated image of the Colosseum"]`,
+	].join(", ");
+
+	const mountImages = () => {
+		const tuningPanel = document.querySelector<HTMLElement>("[data-image-flame-tuner]");
+		for (const image of document.querySelectorAll<HTMLImageElement>(imageSelector)) {
+			if (active.has(image)) continue;
+			active.set(image, mountImageFlame(image, { tuningPanel }));
+		}
+	};
+
+	const unmountImages = () => {
+		for (const cleanup of active.values()) cleanup();
+		active.clear();
+	};
+
+	mountImages();
+	document.addEventListener("astro:page-load", mountImages);
+	document.addEventListener("astro:before-swap", unmountImages);
+</script>

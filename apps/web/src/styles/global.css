@@ -526,6 +526,125 @@ h6 {
   object-fit: cover;
 }
 
+.markdown-page > p:has(> img[alt^="AI-generated image of the Colosseum"]) {
+  clear: both;
+  margin: clamp(72px, 10vw, 132px) 0 clamp(72px, 10vw, 132px);
+}
+
+.markdown-page > p:has(> img[alt^="AI-generated image of the Colosseum"]) img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  border-radius: 2px;
+  object-fit: cover;
+  object-position: center 52%;
+}
+
+.markdown-page > p.image-flame-host > canvas[data-image-flame] {
+  display: none;
+  position: absolute;
+  top: -25%;
+  left: -25%;
+  z-index: 1;
+  width: 150%;
+  height: 150%;
+  max-width: none;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.markdown-page > p.image-flame-host.image-flame-active {
+  position: relative;
+}
+
+.markdown-page > p.image-flame-host.image-flame-active:has(> img[alt^="Portrait of Guntee Doungmanee"]) {
+  aspect-ratio: 1;
+}
+
+.markdown-page > p.image-flame-host.image-flame-active:has(> img[alt^="AI-generated image of the Colosseum"]) {
+  aspect-ratio: 2 / 1;
+}
+
+.markdown-page > p.image-flame-host.image-flame-active > canvas[data-image-flame] {
+  display: block;
+}
+
+.markdown-page > p.image-flame-host.image-flame-active > img[alt^="Portrait of Guntee Doungmanee"],
+.markdown-page > p.image-flame-host.image-flame-active > img[alt^="AI-generated image of the Colosseum"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.image-flame-tuner {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 10000;
+  width: min(270px, calc(100vw - 24px));
+  max-height: min(75vh, 620px);
+  overflow: auto;
+  border: 1px solid var(--palette-rule);
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: var(--palette-paper);
+  color: var(--palette-ink);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 35%);
+  font: 12px/1.4 "Ubuntu Mono", monospace;
+}
+
+.image-flame-tuner summary {
+  cursor: pointer;
+  color: var(--palette-heading);
+  font-weight: 700;
+}
+
+.image-flame-tuner-controls {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.image-flame-tuner label > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.image-flame-tuner output {
+  color: var(--palette-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.image-flame-tuner input[type="range"] {
+  display: block;
+  width: 100%;
+  margin: 3px 0 0;
+  accent-color: var(--palette-heading);
+}
+
+.image-flame-tuner button {
+  justify-self: start;
+  border: 1px solid var(--palette-rule);
+  border-radius: 3px;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--palette-ink);
+  cursor: pointer;
+  font: inherit;
+}
+
+.image-flame-tuner button:focus-visible,
+.image-flame-tuner summary:focus-visible,
+.image-flame-tuner input:focus-visible {
+  outline: 2px solid var(--palette-heading);
+  outline-offset: 2px;
+}
+
 .markdown-page > p:has(> img[alt^="Portrait of Guntee Doungmanee"]) + p + p {
   clear: right;
 }
@@ -1181,6 +1300,11 @@ h6 {
 }
 
 @media (max-width: 800px) {
+  html,
+  body {
+    overflow-x: clip;
+  }
+
   .blob-field--bottom {
     height: 300px;
   }

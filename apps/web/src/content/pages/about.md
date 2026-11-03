@@ -15,6 +15,8 @@ I usually go by `ovenmakemeheat` online. I’m most active on [Facebook](https:/
 
 My CV is available [here](https://www.kmutt.me/guntee_cv).
 
+![AI-generated image of the Colosseum illuminated at twilight](../../assets/colosseum-twilight-banner.jpg)
+
 ## Experience
 
 - **[Present] AI Engineer (part-time), [@QuanXAI](https://quanxai.com/)**. -- Building a financial AI agent with Bedrock AgentCore, LangGraph, and PostgreSQL-backed tools.

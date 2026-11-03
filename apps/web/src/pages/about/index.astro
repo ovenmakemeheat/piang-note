@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import ImageFlame from "../../components/ImageFlame.astro";
 import { getMarkdownPage } from "../../lib/content";
 
 const page = await getMarkdownPage("about");
@@ -14,6 +15,7 @@ const Content = page.Content;
 	<div class="page-shell page-shell--compact">
 		<article class="markdown-page">
 			<Content />
+			<ImageFlame />
 		</article>
 	</div>
 </Layout>
